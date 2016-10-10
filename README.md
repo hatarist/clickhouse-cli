@@ -12,7 +12,6 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
 ## Roadmap
 
   - Better auto-completion (keywords/functions, tables, databases)
-  - Python 2.7 support
   - Unit tests
   - Binary protocol support (port 9000)
 
@@ -57,7 +56,7 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
     │ system     │
     └────────────┘
 
-    Ok. Elapsed: 0.022 sec.
+    Ok. 3 rows in set. Elapsed: 0.022 sec.
 
      :) USE quickstart
 
@@ -71,7 +70,7 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
     │ ontime │
     └────────┘
 
-    Ok. Elapsed: 0.012 sec.
+    Ok. 1 row in set. Elapsed: 0.012 sec.
 
      :) SELECT OriginCityName, count(*) AS flights
         FROM ontime GROUP BY OriginCityName ORDER BY flights DESC LIMIT 20
@@ -99,4 +98,4 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
     │ Philadelphia, PA      │  2737644 │
     └───────────────────────┴──────────┘
 
-    Ok. Elapsed: 1.317 sec.
+    Ok. 20 rows in set. Elapsed: 1.317 sec.
