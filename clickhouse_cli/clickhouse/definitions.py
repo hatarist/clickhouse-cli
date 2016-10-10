@@ -565,6 +565,24 @@ EXIT_COMMANDS = (
     'Жй',
 )
 
+CREATE_SUBCOMMANDS = (
+    'DATABASE',
+    'TABLE',
+    'VIEW',
+)
+
+DROP_SUBCOMMANDS = (
+    'DATABASE',
+    'TABLE'
+)
+
+SHOW_SUBCOMMANDS = (
+    'DATABASES',
+    'TABLES',
+    'PROCESSLIST',
+    'CREATE TABLE',
+)
+
 INTERNAL_COMMANDS = (
     'help',
 ) + EXIT_COMMANDS

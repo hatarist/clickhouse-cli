@@ -11,17 +11,16 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
 
 ## Roadmap
 
-  - History
-  - Autocompletion (keywords/functions, tables, databases)
+  - Better auto-completion (keywords/functions, tables, databases)
   - Python 2.7 support
   - Unit tests
   - Binary protocol support (port 9000)
 
 ## Install
 
-```
-$ pip install clickhouse-cli
-```
+
+    $ pip install clickhouse-cli
+
 
 ## Options
 

@@ -66,7 +66,10 @@ class CLI:
             multiline=self.multiline,
         )
 
-        buffer = CLIBuffer(multiline=self.multiline)
+        buffer = CLIBuffer(
+            client=self.client,
+            multiline=self.multiline,
+        )
 
         application = Application(
             layout=layout,
