@@ -50,11 +50,27 @@ class Response(object):
         self.format = fmt
         self.time_elapsed = None
         self.status_code = None
+        self.rows = None
 
         if isinstance(response, requests.Response):
             self.data = response.text
             self.time_elapsed = response.elapsed.total_seconds()
             self.status_code = response.status_code
+
+            lines = len(self.data.split('\n')) - 1
+
+            if lines <= 0:
+                self.rows = 0
+            elif fmt in ('TabSeparated', 'CSV'):
+                self.rows = lines
+            elif fmt in ('TabSeparatedWithNames', ):
+                self.rows = lines - 1
+            elif fmt in ('PrettyCompactMonoBlock', 'TabSeparatedWithNamesAndTypes'):
+                self.rows = lines - 2
+
+            if fmt in ('PrettyCompactMonoBlock',) and self.rows >= 10001:
+                self.rows = 10000
+
         else:
             self.data = response
 

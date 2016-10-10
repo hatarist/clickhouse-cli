@@ -134,10 +134,18 @@ class CLI:
 
             echo.success('Ok. ', nl=False)
 
+            if response.rows is not None:
+                print('{rows_count} row{rows_plural} in set.'.format(
+                    rows_count=response.rows,
+                    rows_plural='s' if response.rows != 1 else '',
+                ), end=' ')
+
             if response.time_elapsed:
-                print('Elapsed: {:.3f} sec.\n'.format(response.time_elapsed), flush=True)
-            else:
-                print('\n', flush=True)
+                print('Elapsed: {elapsed:.3f} sec.'.format(
+                    elapsed=response.time_elapsed
+                ))
+
+            print('', flush=True)
 
 
 def print_help():
