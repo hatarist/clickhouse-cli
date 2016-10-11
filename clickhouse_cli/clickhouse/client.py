@@ -45,21 +45,22 @@ class ConnectionError(Exception):
 
 class Response(object):
 
-    def __init__(self, query, fmt, response):
+    def __init__(self, query, fmt, response='', message=''):
         self.query = query
+        self.message = message
         self.format = fmt
         self.time_elapsed = None
         self.status_code = None
         self.rows = None
 
         if isinstance(response, requests.Response):
-            self.data = response.text
+            self.data = response.text[:-1]
             self.time_elapsed = response.elapsed.total_seconds()
             self.status_code = response.status_code
 
-            lines = len(self.data.split('\n')) - 1
+            lines = len(self.data.split('\n'))
 
-            if lines <= 0:
+            if self.data == '' or not lines:
                 self.rows = 0
             elif fmt in ('TabSeparated', 'CSV'):
                 self.rows = lines
@@ -70,7 +71,6 @@ class Response(object):
 
             if fmt in ('PrettyCompactMonoBlock',) and self.rows >= 10001:
                 self.rows = 10000
-
         else:
             self.data = response
 
@@ -89,12 +89,12 @@ class Client(object):
         query_split = query.split()
 
         if len(query_split) == 0:
-            return Response(query, fmt, 'Empty query.\n'.format(self.database))
+            return Response(query, fmt, message='Empty query.'.format(self.database))
 
         # A `USE database;` kind of query that we should handle ourselves since sessions aren't supported over HTTP
         if query_split[0].upper() == 'USE' and len(query_split) == 2:
             self.database = query_split[1]
-            return Response(query, fmt, 'Changed the current database to {0}.\n'.format(self.database))
+            return Response(query, fmt, message='Changed the current database to {0}.'.format(self.database))
 
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() != 'FORMAT':

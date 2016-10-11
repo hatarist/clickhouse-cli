@@ -4,19 +4,18 @@ An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex
 It works over the HTTP port, so there are limitations:
 
   - Doesn't support sessions
+  - Doesn't support query abortion
   - Doesn't show progress bar
   - Doesn't abort processing
 
-Actually, for now it's just a stupid HTTP client with a stupid syntax highlighting.
+But, though, we have:
 
-## Roadmap
+  - Autocompletion (WIP)
+  - Syntax highlighting (WIP)
+  - Multiquery by default
 
-  - Better auto-completion (keywords/functions, tables, databases)
-  - Unit tests
-  - Binary protocol support (port 9000)
 
 ## Install
-
 
     $ pip install clickhouse-cli
 
@@ -25,20 +24,21 @@ Actually, for now it's just a stupid HTTP client with a stupid syntax highlighti
 
     $ clickhouse-cli --help
     Usage: clickhouse-cli [OPTIONS] [SQLFILE]
-
+    
       A third-party client for the ClickHouse DBMS.
-
+    
     Options:
-      -h, --host TEXT      Server host
-      -p, --port INTEGER   Server HTTP port
-      -u, --user TEXT      User
-      -P, --password       Password
-      -d, --database TEXT  Database
-      -f, --format TEXT    Output format
-      -m, --multiline      Enable multiline shell
-      --stacktrace         Print stacktraces received from the server.
-      --version            Show the version and exit.
-      --help               Show this message and exit.
+      -h, --host TEXT          Server host
+      -p, --port INTEGER       Server HTTP port
+      -u, --user TEXT          User
+      -P, --password           Password
+      -d, --database TEXT      Database
+      -f, --format TEXT        Output format for the interactive mode
+      -F, --format-stdin TEXT  Output format for stdin/file queries
+      -m, --multiline          Enable multiline shell
+      --stacktrace             Print stacktraces received from the server.
+      --version                Show the version and exit.
+      --help                   Show this message and exit.
 
 
 ## Quickstart

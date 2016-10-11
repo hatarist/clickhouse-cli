@@ -39,20 +39,27 @@ CHStyle = style_from_dict({
 })
 
 
-class echo(object):
+class Echo(object):
 
-    @staticmethod
-    def info(text, *args, **kwargs):
-        secho(text, *args, **kwargs)
+    def __init__(self, verbose=True):
+        self.verbose = verbose
 
-    @staticmethod
-    def success(text, *args, **kwargs):
-        secho(text, fg='green', *args, **kwargs)
+    def _echo(self, *args, **kwargs):
+        if self.verbose:
+            return secho(*args, **kwargs)
 
-    @staticmethod
-    def warning(text, *args, **kwargs):
-        secho(text, fg='yellow', *args, **kwargs)
+    def info(self, text, *args, **kwargs):
+        self._echo(text, *args, **kwargs)
 
-    @staticmethod
-    def error(text, *args, **kwargs):
-        secho(text, fg='red', *args, **kwargs)
+    def success(self, text, *args, **kwargs):
+        self._echo(text, fg='green', *args, **kwargs)
+
+    def warning(self, text, *args, **kwargs):
+        self._echo(text, fg='yellow', *args, **kwargs)
+
+    def error(self, text, *args, **kwargs):
+        self._echo(text, fg='red', *args, **kwargs)
+
+    def print(self, *args, **kwargs):
+        if self.verbose:
+            return print(*args, **kwargs)
