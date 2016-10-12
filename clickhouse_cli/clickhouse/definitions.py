@@ -449,7 +449,7 @@ WRITE_QUERIES = (
     'RENAME',
     'ALTER',
     'EXISTS',
-    'SET',
+    # 'SET',
     'OPTIMIZE',
 )
 
