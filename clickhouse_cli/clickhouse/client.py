@@ -24,15 +24,15 @@ class DBException(Exception):
         self.stacktrace = ''
 
         try:
-            info = re.search(self.regex, response).groupdict()
+            info = re.search(self.regex, response.text).groupdict()
             self.error_code = info['code']
             self.error = info['text']
             self.stacktrace = info['stacktrace'] or ''
         except:
-            self.error = self.response
+            self.error = self.response.text
 
     def __str__(self):
-        return 'Query:\n{0}\n\nResponse:\n{1}'.format(self.query, self.response)
+        return 'Query:\n{0}\n\nResponse:\n{1}'.format(self.query, self.response.text)
 
 
 class TimeoutError(Exception):
@@ -50,13 +50,11 @@ class Response(object):
         self.message = message
         self.format = fmt
         self.time_elapsed = None
-        self.status_code = None
         self.rows = None
 
         if isinstance(response, requests.Response):
             self.data = response.text[:-1]
             self.time_elapsed = response.elapsed.total_seconds()
-            self.status_code = response.status_code
 
             lines = len(self.data.split('\n'))
 
@@ -77,11 +75,12 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user='default', password=None, database='default'):
+    def __init__(self, url, user='default', password=None, database='default', stacktrace=False):
         self.url = url
         self.user = user
         self.password = password or ''
         self.database = database
+        self.stacktrace = stacktrace
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', **kwargs):
         query = query.strip().rstrip(';').rstrip()
@@ -107,6 +106,9 @@ class Client(object):
         if self.database != 'default':
             params['database'] = self.database
 
+        if self.stacktrace:
+            params['stacktrace'] = 1
+
         response = None
         try:
             response = requests.post(self.url, data=data, params=params, auth=(self.user, self.password), **kwargs)
@@ -116,6 +118,6 @@ class Client(object):
             raise ConnectionError
 
         if response is not None and response.status_code != 200:
-            raise DBException(response.text, query=query)
+            raise DBException(response, query=query)
 
         return Response(query, fmt, response)

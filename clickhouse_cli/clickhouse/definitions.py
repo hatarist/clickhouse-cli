@@ -439,6 +439,7 @@ READ_QUERIES = (
     'SHOW',
     'DESCRIBE',
     'USE',
+    'EXISTS',
 )
 
 WRITE_QUERIES = (
@@ -448,7 +449,6 @@ WRITE_QUERIES = (
     'DROP',
     'RENAME',
     'ALTER',
-    'EXISTS',
     # 'SET',
     'OPTIMIZE',
 )

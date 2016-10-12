@@ -30,7 +30,7 @@ class CLI:
         self.echo = Echo(verbose=True)
 
         self.url = 'http://{host}:{port}/'.format(host=host, port=port)
-        self.client = Client(self.url, self.user, self.password, self.database)
+        self.client = Client(self.url, self.user, self.password, self.database, self.stacktrace)
 
     def connect(self):
         print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
@@ -46,6 +46,11 @@ class CLI:
         except DBException as e:
             self.echo.error("Error:")
             self.echo.error(e.error)
+
+            if self.stacktrace and e.stacktrace:
+                self.echo.print("Stack trace:")
+                self.echo.print(e.stacktrace)
+
             return False
 
         if response.data != '1':
@@ -143,6 +148,11 @@ class CLI:
                 if self.stacktrace and e.stacktrace:
                     self.echo.print("\nStack trace:")
                     self.echo.print(e.stacktrace)
+
+                    self.echo.print('Elapsed: {elapsed:.3f} sec.\n'.format(
+                        elapsed=e.response.elapsed.total_seconds()
+                    ))
+
                 return
 
             if response.data != '':
