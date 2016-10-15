@@ -406,7 +406,7 @@ OPERATORS = (
     'NOT'
 )
 
-FORMATS = [
+FORMATS = (
     'Native',
     'TabSeparated',
     'TabSeparatedWithNames',
@@ -431,8 +431,7 @@ FORMATS = [
     'TSKV',
     'XML',
     'Null',
-]
-
+)
 
 READ_QUERIES = (
     'SELECT',
@@ -583,6 +582,15 @@ SHOW_SUBCOMMANDS = (
     'CREATE TABLE',
 )
 
-INTERNAL_COMMANDS = (
+HELP_COMMANDS = (
     'help',
-) + EXIT_COMMANDS
+    '\?',
+)
+
+REDIRECTION_COMMANDS = (
+    '\d',
+    '\dt',
+    '\l',
+)
+
+INTERNAL_COMMANDS = EXIT_COMMANDS + HELP_COMMANDS + REDIRECTION_COMMANDS

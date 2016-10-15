@@ -126,7 +126,7 @@ class CLI:
             pass
         elif query in EXIT_COMMANDS:
             raise EOFError
-        elif query == 'help':
+        elif query in ('\?', 'help'):
             rows = [
                 ['USE db', "Change the current database to `db`."],
                 ['QUIT', "Exit clickhouse-cli."],
@@ -136,47 +136,53 @@ class CLI:
             for row in rows:
                 self.echo.success('{:<8s}'.format(row[0]), nl=False)
                 self.echo.info(row[1])
-        else:
-            response = ''
+            return
 
-            try:
-                response = self.client.query(query, fmt=self.format)
-            except DBException as e:
-                self.echo.error("\nReceived exception from server:")
-                self.echo.error(e.error)
+        elif query in ('\d', '\dt'):
+            query = 'SHOW TABLES'
+        elif query in ('\l',):
+            query = 'SHOW DATABASES'
 
-                if self.stacktrace and e.stacktrace:
-                    self.echo.print("\nStack trace:")
-                    self.echo.print(e.stacktrace)
+        response = ''
 
-                    self.echo.print('Elapsed: {elapsed:.3f} sec.\n'.format(
-                        elapsed=e.response.elapsed.total_seconds()
-                    ))
+        try:
+            response = self.client.query(query, fmt=self.format)
+        except DBException as e:
+            self.echo.error("\nReceived exception from server:")
+            self.echo.error(e.error)
 
-                return
+            if self.stacktrace and e.stacktrace:
+                self.echo.print("\nStack trace:")
+                self.echo.print(e.stacktrace)
 
-            if response.data != '':
-                self.echo.print()
-                print(response.data)  # We still need the data to be displayed, even in the non-interactive mode
+                self.echo.print('Elapsed: {elapsed:.3f} sec.\n'.format(
+                    elapsed=e.response.elapsed.total_seconds()
+                ))
 
-            if response.message != '':
-                self.echo.print()
-                self.echo.print(response.message)
+            return
 
-            self.echo.success('\nOk. ', nl=False)
+        if response.data != '':
+            self.echo.print()
+            print(response.data)  # We still need the data to be displayed, even in the non-interactive mode
 
-            if response.rows is not None:
-                self.echo.print('{rows_count} row{rows_plural} in set.'.format(
-                    rows_count=response.rows,
-                    rows_plural='s' if response.rows != 1 else '',
-                ), end=' ')
+        if response.message != '':
+            self.echo.print()
+            self.echo.print(response.message)
 
-            if response.time_elapsed is not None:
-                self.echo.print('Elapsed: {elapsed:.3f} sec.'.format(
-                    elapsed=response.time_elapsed
-                ), end='')
+        self.echo.success('\nOk. ', nl=False)
 
-            self.echo.print('\n')
+        if response.rows is not None:
+            self.echo.print('{rows_count} row{rows_plural} in set.'.format(
+                rows_count=response.rows,
+                rows_plural='s' if response.rows != 1 else '',
+            ), end=' ')
+
+        if response.time_elapsed is not None:
+            self.echo.print('Elapsed: {elapsed:.3f} sec.'.format(
+                elapsed=response.time_elapsed
+            ), end='')
+
+        self.echo.print('\n')
 
 
 @click.command()
