@@ -67,7 +67,7 @@ class CHCompleter(Completer):
                 return self.get_single_match(word.upper(), 'INTO ')
             elif first_keyword == 'SHOW':  # SHOW <DATABASES|TABLES|...>
                 return self.get_completion(word.upper(), SHOW_SUBCOMMANDS)
-            elif first_keyword == 'DESCRIBE':  # DESCRIBE <table>
+            elif first_keyword in ('DESCRIBE', 'OPTIMIZE'):  # DESCRIBE <table>
                 return self.get_completion(word, self.get_tables())
             elif first_keyword == 'CREATE':  # CREATE <TABLE|VIEW>
                 return self.get_completion(word.upper(), CREATE_SUBCOMMANDS)
