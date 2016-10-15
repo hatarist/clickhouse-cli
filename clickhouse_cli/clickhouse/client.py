@@ -96,10 +96,11 @@ class Client(object):
             return Response(query, fmt, message='Changed the current database to {0}.'.format(self.database))
 
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
-            if query_split[-2].upper() != 'FORMAT':
-                query = query + ' FORMAT {fmt}'.format(fmt=fmt)
-            elif query_split[-2].upper() == 'FORMAT':
+            if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
+            elif query_split[-2].upper() != 'FORMAT':
+                if query_split[0].upper() != 'INSERT':
+                    query = query + ' FORMAT {fmt}'.format(fmt=fmt)
 
         params = {'query': query}
 
