@@ -445,6 +445,7 @@ WRITE_QUERIES = (
     'INSERT',
     'CREATE',
     'ATTACH',
+    'DETACH',
     'DROP',
     'RENAME',
     'ALTER',
@@ -456,6 +457,7 @@ FORMATTABLE_QUERIES = (
     'INSERT',
     'SELECT',
     'SHOW',
+    'DESC',
     'DESCRIBE',
     'EXISTS',
 )
@@ -464,6 +466,7 @@ KEYWORDS = (
     'ADD',
     'AFTER',
     'ALIAS',
+    'ALTER',
     'ALL',
     'AND',
     'ANY',

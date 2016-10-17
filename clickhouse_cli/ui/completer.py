@@ -67,7 +67,7 @@ class CHCompleter(Completer):
                 return self.get_single_match(word.upper(), 'INTO ')
             elif first_keyword == 'SHOW':  # SHOW <DATABASES|TABLES|...>
                 return self.get_completion(word.upper(), SHOW_SUBCOMMANDS)
-            elif first_keyword in ('DESCRIBE', 'OPTIMIZE'):  # DESCRIBE <table>
+            elif first_keyword in ('DESC', 'DESCRIBE', 'OPTIMIZE'):  # DESCRIBE <table>
                 return self.get_completion(word, self.get_tables())
             elif first_keyword == 'CREATE':  # CREATE <TABLE|VIEW>
                 return self.get_completion(word.upper(), CREATE_SUBCOMMANDS)
@@ -76,15 +76,15 @@ class CHCompleter(Completer):
             elif first_keyword == 'SELECT':
                 return self.get_completion(word, AGGREGATION_FUNCTIONS + FUNCTIONS)
             else:
-                return self.get_completion(word.upper(), READ_QUERIES + WRITE_QUERIES, suffix=' ')
+                return self.get_completion(word.upper(), READ_QUERIES + WRITE_QUERIES)
         else:
             first_keyword = split_text[0].upper()
             last_keyword = split_text[-1].upper() if word == '' else split_text[-2].upper()
             if last_keyword in ('FROM', 'INTO'):
                 # SELECT * FROM <table>
                 # INSERT INTO <table>
-                return self.get_completion(word, self.get_tables(), suffix=' ')
-            elif first_keyword in ('SHOW', 'DROP'):
+                return self.get_completion(word, self.get_tables())
+            elif first_keyword in ('SHOW', 'DROP', 'ALTER'):
                 if last_keyword == 'TABLE':  # SHOW CREATE TABLE <table>, DROP TABLE <table>
                     return self.get_completion(word, self.get_tables())
                 elif last_keyword == 'DATABASE':  # DROP DATABASE <database>
