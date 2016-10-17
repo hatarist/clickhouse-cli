@@ -110,9 +110,13 @@ class Client(object):
         if self.stacktrace:
             params['stacktrace'] = 1
 
+        params['enable_http_compression'] = 1
+
         response = None
         try:
-            response = requests.post(self.url, data=data, params=params, auth=(self.user, self.password), **kwargs)
+            response = requests.post(
+                self.url, data=data, params=params, auth=(self.user, self.password), **kwargs
+            )
         except requests.exceptions.ConnectTimeout:
             raise TimeoutError
         except requests.exceptions.ConnectionError:
