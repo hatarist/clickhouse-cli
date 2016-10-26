@@ -104,24 +104,27 @@ class CLI:
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
         query_buffer = ''
-        query_wasnt_finished = False
+        was_finished = True
 
         for query in input_data:
             if not query_is_finished(query):
                 query_buffer = query_buffer + ' ' + query
-                query_wasnt_finished = True
+                was_finished = False
             else:
-                if query_wasnt_finished:
-                    self.handle_query(query_buffer + ' ' + query)
-                    query_wasnt_finished = False
+                if not was_finished:
+                    query = (query_buffer + ' ' + query).strip()
+                    was_finished = True
                     query_buffer = ''
-                else:
-                    self.handle_query(query)
+
+                query = query.strip()
+                self.handle_query(query)
 
         if not self.multiline and query_buffer != '':
             self.handle_query(query_buffer)
 
     def handle_query(self, query):
+        query = query.strip()
+
         if query == '':
             pass
         elif query in EXIT_COMMANDS:
