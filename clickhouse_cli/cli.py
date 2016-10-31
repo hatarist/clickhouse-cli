@@ -78,18 +78,25 @@ class CLI:
         self.format = self.format or self.config.get('main', 'format', fallback='PrettyCompactMonoBlock')
         self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin', fallback='TabSeparated')
 
-    def run(self, data=None):
+    def run(self, query=None, data=None):
+        self.load_config()
+
         if data is not None:
-            # Run in a non-interactive mode
             self.echo.verbose = False
             self.format = self.format_stdin
-            return self.handle_input(data)
+
+            # Run in a non-interactive mode
+            if query is None:
+                # Run stdin/file as SQL query
+                return self.handle_input(data)
+            else:
+                # Run query with stdin/file as data for the INSERT statement
+                # self.echo.verbose = True
+                return self.handle_query(query, data=''.join(data))
 
         show_version()
         if not self.connect():
             return
-
-        self.load_config()
 
         layout = create_prompt_layout(
             lexer=CHLexer,
@@ -142,7 +149,7 @@ class CLI:
         if not self.multiline and query_buffer != '':
             self.handle_query(query_buffer)
 
-    def handle_query(self, query):
+    def handle_query(self, query, data=None):
         query = query.strip()
 
         if query == '':
@@ -184,7 +191,7 @@ class CLI:
         response = ''
 
         try:
-            response = self.client.query(query, fmt=self.format)
+            response = self.client.query(query, fmt=self.format, data=data)
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)
@@ -229,13 +236,14 @@ class CLI:
 @click.option('--user', '-u', default='default', help="User")
 @click.option('--password', '-P', is_flag=True, help="Password")
 @click.option('--database', '-d', default='default', help="Database")
+@click.option('--query', '-q', help="Query to execute")
 @click.option('--format', '-f', help="Output format for the interactive mode")
 @click.option('--format-stdin', '-F', help="Output format for stdin/file queries")
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('sqlfile', nargs=1, default=False, type=click.File('r'))
-def run(host, port, user, password, database, format, format_stdin, multiline, stacktrace, version, sqlfile):
+def run(host, port, user, password, database, query, format, format_stdin, multiline, stacktrace, version, sqlfile):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -258,7 +266,7 @@ def run(host, port, user, password, database, format, format_stdin, multiline, s
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(host, port, user, password, database, format, format_stdin, multiline, stacktrace)
-    cli.run(data=sql_input)
+    cli.run(query=query, data=sql_input)
 
 
 if __name__ == '__main__':

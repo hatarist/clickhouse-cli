@@ -99,7 +99,7 @@ class Client(object):
             if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
             elif query_split[-2].upper() != 'FORMAT':
-                if query_split[0].upper() != 'INSERT':
+                if query_split[0].upper() != 'INSERT' or data is not None:
                     query = query + ' FORMAT {fmt}'.format(fmt=fmt)
 
         params = {'query': query}
