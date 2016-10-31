@@ -11,6 +11,7 @@ setup(
     author='Igor Hatarist',
     author_email='igor@hatari.st',
     license='MIT',
+    package_data={'clickhouse_cli': ['clickhouse-cli.rc.sample']},
     packages=[
         'clickhouse_cli',
         'clickhouse_cli.clickhouse',

@@ -14,6 +14,7 @@ from clickhouse_cli.ui.prompt import (
     query_is_finished,
 )
 from clickhouse_cli.ui.style import CHStyle, Echo
+from clickhouse_cli.config import read_config
 
 
 def show_version():
@@ -23,6 +24,8 @@ def show_version():
 class CLI:
 
     def __init__(self, host, port, user, password, database, format, format_stdin, multiline, stacktrace):
+        self.config = None
+
         self.host = host
         self.port = port
         self.user = user
@@ -66,6 +69,15 @@ class CLI:
         self.echo.success("Connected to ClickHouse server.\n")
         return True
 
+    def load_config(self):
+        self.config = read_config()
+
+        if self.config.getboolean('main', 'multiline'):
+            self.multiline = True
+
+        self.format = self.format or self.config.get('main', 'format', fallback='PrettyCompactMonoBlock')
+        self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin', fallback='TabSeparated')
+
     def run(self, data=None):
         if data is not None:
             # Run in a non-interactive mode
@@ -76,6 +88,8 @@ class CLI:
         show_version()
         if not self.connect():
             return
+
+        self.load_config()
 
         layout = create_prompt_layout(
             lexer=CHLexer,
@@ -201,7 +215,7 @@ class CLI:
                 rows_plural='s' if response.rows != 1 else '',
             ), end=' ')
 
-        if response.time_elapsed is not None:
+        if self.config.getboolean('main', 'timing') and response.time_elapsed is not None:
             self.echo.print('Elapsed: {elapsed:.3f} sec.'.format(
                 elapsed=response.time_elapsed
             ), end='')
@@ -215,8 +229,8 @@ class CLI:
 @click.option('--user', '-u', default='default', help="User")
 @click.option('--password', '-P', is_flag=True, help="Password")
 @click.option('--database', '-d', default='default', help="Database")
-@click.option('--format', '-f', default='PrettyCompactMonoBlock', help="Output format for the interactive mode")
-@click.option('--format-stdin', '-F', default='TabSeparated', help="Output format for stdin/file queries")
+@click.option('--format', '-f', help="Output format for the interactive mode")
+@click.option('--format-stdin', '-F', help="Output format for stdin/file queries")
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
