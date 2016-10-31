@@ -593,7 +593,9 @@ HELP_COMMANDS = (
 
 REDIRECTION_COMMANDS = (
     '\d',
+    '\d+',
     '\dt',
+    '\c',
     '\l',
 )
 

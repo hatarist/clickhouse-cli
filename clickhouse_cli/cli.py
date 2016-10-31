@@ -6,7 +6,13 @@ from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS
 from clickhouse_cli.ui.lexer import CHLexer
-from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens, query_is_finished
+from clickhouse_cli.ui.prompt import (
+    CLIBuffer,
+    KeyBinder,
+    get_continuation_tokens,
+    get_prompt_tokens,
+    query_is_finished,
+)
 from clickhouse_cli.ui.style import CHStyle, Echo
 
 
@@ -131,9 +137,20 @@ class CLI:
             raise EOFError
         elif query in ('\?', 'help'):
             rows = [
+                ['', ''],
+                ["clickhouse-cli's custom commands:", ""],
+                ['---------------------------------', ''],
                 ['USE db', "Change the current database to `db`."],
                 ['QUIT', "Exit clickhouse-cli."],
                 ['HELP', "Show this help message."],
+                ['', ""],
+                ["PostgreSQL-like custom commands:", ""],
+                ['--------------------------------', ''],
+                ['\l', "Show databases."],
+                ['\c', "Change the current database."],
+                ['\d, \dt', "Show tables in the current database."],
+                ['\d+', "Show table's schema."],
+                ['', ''],
             ]
 
             for row in rows:
@@ -145,6 +162,10 @@ class CLI:
             query = 'SHOW TABLES'
         elif query in ('\l',):
             query = 'SHOW DATABASES'
+        elif query.startswith('\d+ '):
+            query = 'DESCRIBE TABLE ' + query[4:]
+        elif query.startswith('\c '):
+            query = 'USE ' + query[3:]
 
         response = ''
 
