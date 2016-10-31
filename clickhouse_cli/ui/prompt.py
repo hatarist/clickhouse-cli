@@ -22,7 +22,7 @@ class CLIBuffer(Buffer):
                 return False
 
             text = self.document.text
-            return not query_is_finished(text)
+            return not query_is_finished(text, multiline)
 
         super(CLIBuffer, self).__init__(
             *args,
@@ -35,10 +35,10 @@ class CLIBuffer(Buffer):
         )
 
 
-def query_is_finished(text):
+def query_is_finished(text, multiline=False):
     text = text.strip()
     return (
-        text == '' or
+        (not multiline and text == '') or
         text.endswith(';') or
         text in INTERNAL_COMMANDS
     )

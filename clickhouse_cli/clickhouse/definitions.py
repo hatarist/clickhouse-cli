@@ -436,6 +436,7 @@ FORMATS = (
 READ_QUERIES = (
     'SELECT',
     'SHOW',
+    'DESC',
     'DESCRIBE',
     'USE',
     'EXISTS',

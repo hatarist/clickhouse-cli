@@ -107,8 +107,8 @@ class CLI:
         was_finished = True
 
         for query in input_data:
-            if not query_is_finished(query):
-                query_buffer = query_buffer + ' ' + query
+            if not query_is_finished(query, self.multiline):
+                query_buffer = query_buffer + ' ' + query.strip()
                 was_finished = False
             else:
                 if not was_finished:
