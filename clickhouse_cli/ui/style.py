@@ -35,7 +35,8 @@ CHStyle = style_from_dict({
     Token.Generic.Subheading: '#ffffff bold',
     Token.Keyword.Type: '#21ce1d bold',
     Token.Keyword.Format: '#21ce1d bold',
-    Token.Comment.Preproc: '#ff0007 bold'
+    Token.Comment.Preproc: '#ff0007 bold',
+    Token.Prompt: 'bold',
 })
 
 

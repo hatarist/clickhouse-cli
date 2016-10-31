@@ -20,7 +20,7 @@ class CHLexer(RegexLexer):
     tokens = {
         'root': [
             (r'\s+', Token.Text),
-            (r'(--\s*).*?\n', Token.Comment.Single),
+            (r'(--\s*).*?\n', Token.Comment),
             (r'/\*', Token.Comment.Multiline, 'multiline-comments'),
             (r'[0-9]+', Token.Number),
             (r'[0-9]*\.[0-9]+(e[+-][0-9]+)', Token.Number),

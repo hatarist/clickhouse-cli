@@ -46,9 +46,9 @@ def query_is_finished(text, multiline=False):
 
 def get_prompt_tokens(cli):
     return [
-        (Token, ' :) '),
+        (Token.Prompt, ' :) '),
     ]
 
 
 def get_continuation_tokens(cli, width):
-    return [(Token, '  ] ')]
+    return [(Token.Prompt, '  ] ')]
