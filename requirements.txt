@@ -1,4 +1,0 @@
-click==6.6
-prompt-toolkit==1.0.7
-requests==2.11.1
-pygments==2.1.3
