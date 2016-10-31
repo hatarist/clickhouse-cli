@@ -41,6 +41,23 @@ But, though, we have:
       --help                   Show this message and exit.
 
 
+## Configuration file
+
+    $ cat ~/.clickhouse-cli.rc
+    [main]
+    # Enable multiline mode by default
+    multiline = False
+
+    # Show SQL statements timing
+    timing = True
+
+    # Preferred output format for the interactive mode
+    format = PrettyCompactMonoBlock
+
+    # Preferred output format for the non-interactive mode (file/stdin)
+    format_stdin = TabSeparated
+
+
 ## Quickstart
 
     $ clickhouse-cli
