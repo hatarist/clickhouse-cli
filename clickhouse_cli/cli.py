@@ -82,17 +82,22 @@ class CLI:
         self.load_config()
 
         if data is not None:
-            self.echo.verbose = False
             self.format = self.format_stdin
 
             # Run in a non-interactive mode
             if query is None:
                 # Run stdin/file as SQL query
+                self.echo.verbose = False
                 return self.handle_input(data)
+
+        if query is not None:
+            self.format = self.format_stdin
+
+            if data is None:
+                self.echo.verbose = False
+                return self.handle_query(query, stream=True)
             else:
-                # Run query with stdin/file as data for the INSERT statement
-                # self.echo.verbose = True
-                return self.handle_query(query, data=''.join(data))
+                return self.handle_query(query, data=data, stream=True)
 
         show_version()
         if not self.connect():
@@ -149,7 +154,7 @@ class CLI:
         if not self.multiline and query_buffer != '':
             self.handle_query(query_buffer)
 
-    def handle_query(self, query, data=None):
+    def handle_query(self, query, data=None, stream=False):
         query = query.strip()
 
         if query == '':
@@ -191,7 +196,7 @@ class CLI:
         response = ''
 
         try:
-            response = self.client.query(query, fmt=self.format, data=data)
+            response = self.client.query(query, fmt=self.format, data=data, stream=stream)
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)
@@ -206,9 +211,13 @@ class CLI:
 
             return
 
-        if response.data != '':
-            self.echo.print()
-            print(response.data)  # We still need the data to be displayed, even in the non-interactive mode
+        self.echo.print()
+
+        if stream:
+            for line in response.data:
+                print(line.decode('utf-8', 'ignore'))  # ignore / replace / backslashreplace
+        else:
+            print(response.data)
 
         if response.message != '':
             self.echo.print()

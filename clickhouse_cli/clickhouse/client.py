@@ -45,16 +45,23 @@ class ConnectionError(Exception):
 
 class Response(object):
 
-    def __init__(self, query, fmt, response='', message=''):
+    def __init__(self, query, fmt, response='', message='', stream=False):
         self.query = query
         self.message = message
         self.format = fmt
+        self.stream = stream
         self.time_elapsed = None
         self.rows = None
 
         if isinstance(response, requests.Response):
-            self.data = response.text[:-1]
             self.time_elapsed = response.elapsed.total_seconds()
+
+            if stream:
+                self.data = response.iter_lines()
+                self.rows = -1
+                return
+
+            self.data = response.text[:-1]
 
             lines = len(self.data.split('\n'))
 
@@ -82,7 +89,7 @@ class Client(object):
         self.database = database
         self.stacktrace = stacktrace
 
-    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', **kwargs):
+    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, **kwargs):
         query = query.strip().rstrip(';').rstrip()
 
         query_split = query.split()
@@ -115,7 +122,7 @@ class Client(object):
         response = None
         try:
             response = requests.post(
-                self.url, data=data, params=params, auth=(self.user, self.password), **kwargs
+                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, **kwargs
             )
         except requests.exceptions.ConnectTimeout:
             raise TimeoutError
@@ -125,4 +132,4 @@ class Client(object):
         if response is not None and response.status_code != 200:
             raise DBException(response, query=query)
 
-        return Response(query, fmt, response)
+        return Response(query, fmt, response, stream=stream)
