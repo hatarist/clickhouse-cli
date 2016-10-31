@@ -23,7 +23,6 @@ setup(
         'pygments>=2.1.3',
         'requests>=2.11.1',
     ],
-    include_package_data=True,
     zip_safe=False,
     entry_points={
         'console_scripts': [
