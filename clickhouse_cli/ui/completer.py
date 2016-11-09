@@ -61,8 +61,10 @@ class CHCompleter(Completer):
         if (count < 2 and word == '') or (count <= 2 and word != ''):
             first_keyword = split_text[0].upper() if text != '' else word
 
-            if first_keyword == 'USE':  # USE <database>
+            if first_keyword in ('USE', '\C'):  # USE <database>
                 return self.get_completion(word, self.get_databases())
+            elif first_keyword == '\D+':  # \d+ <table>
+                return self.get_completion(word, self.get_tables())
             elif first_keyword == 'INSERT':  # INSERT <INTO>
                 return self.get_single_match(word.upper(), 'INTO ')
             elif first_keyword == 'SHOW':  # SHOW <DATABASES|TABLES|...>

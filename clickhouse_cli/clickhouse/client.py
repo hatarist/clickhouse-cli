@@ -61,21 +61,18 @@ class Response(object):
                 self.rows = -1
                 return
 
-            self.data = response.text[:-1]
+            self.data = response.text
 
             lines = len(self.data.split('\n'))
 
             if self.data == '' or not lines:
                 self.rows = 0
             elif fmt in ('TabSeparated', 'CSV'):
-                self.rows = lines
-            elif fmt in ('TabSeparatedWithNames', ):
                 self.rows = lines - 1
-            elif fmt in ('PrettyCompactMonoBlock', 'TabSeparatedWithNamesAndTypes'):
+            elif fmt in ('TabSeparatedWithNames', ):
                 self.rows = lines - 2
-
-            if fmt in ('PrettyCompactMonoBlock',) and self.rows >= 10001:
-                self.rows = 10000
+            elif fmt in ('PrettyCompactMonoBlock', 'TabSeparatedWithNamesAndTypes'):
+                self.rows = lines - 3
         else:
             self.data = response
 
@@ -95,7 +92,7 @@ class Client(object):
         query_split = query.split()
 
         if len(query_split) == 0:
-            return Response(query, fmt, message='Empty query.'.format(self.database))
+            return Response(query, fmt)
 
         # A `USE database;` kind of query that we should handle ourselves since sessions aren't supported over HTTP
         if query_split[0].upper() == 'USE' and len(query_split) == 2:

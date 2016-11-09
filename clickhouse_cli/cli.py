@@ -62,7 +62,7 @@ class CLI:
 
             return False
 
-        if response.data != '1':
+        if response.data != '1\n':
             self.echo.error("Error: Request failed: `SELECT 1` query failed.")
             return False
 
@@ -158,7 +158,7 @@ class CLI:
         query = query.strip()
 
         if query == '':
-            pass
+            return
         elif query in EXIT_COMMANDS:
             raise EOFError
         elif query in ('\?', 'help'):
@@ -214,10 +214,9 @@ class CLI:
         self.echo.print()
 
         if stream:
-            for line in response.data:
-                print(line.decode('utf-8', 'ignore'))  # ignore / replace / backslashreplace
+            print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
-            print(response.data)
+            print(response.data, end='')
 
         if response.message != '':
             self.echo.print()
