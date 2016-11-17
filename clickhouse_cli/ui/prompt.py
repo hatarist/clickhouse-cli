@@ -1,16 +1,18 @@
 import os
 
 from prompt_toolkit.buffer import AcceptAction, Buffer
-from prompt_toolkit.filters import Condition
+from prompt_toolkit.enums import DEFAULT_BUFFER, SEARCH_BUFFER
+from prompt_toolkit.filters import Condition, HasFocus
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding.manager import KeyBindingManager
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.token import Token
 
 from clickhouse_cli.clickhouse.definitions import INTERNAL_COMMANDS
 from clickhouse_cli.ui.completer import CHCompleter
 
 
-KeyBinder = KeyBindingManager(enable_abort_and_exit_bindings=True, enable_search=True)
+KeyBinder = KeyBindingManager.for_prompt()
 
 
 class CLIBuffer(Buffer):
@@ -52,3 +54,30 @@ def get_prompt_tokens(cli):
 
 def get_continuation_tokens(cli, width):
     return [(Token.Prompt, '  ] ')]
+
+
+def reset_buffer(event):
+    buffer = event.current_buffer
+    if buffer.complete_state:
+        buffer.cancel_completion()
+    else:
+        buffer.reset()
+
+
+def reset_search_buffer(event):
+    if event.current_buffer.document.text:
+        event.current_buffer.reset()
+    else:
+        event.cli.push_focus(DEFAULT_BUFFER)
+
+
+KeyBinder.registry.add_binding(
+    Keys.ControlC,
+    filter=HasFocus(DEFAULT_BUFFER)
+)(reset_buffer)
+
+
+KeyBinder.registry.add_binding(
+    Keys.ControlC,
+    filter=HasFocus(SEARCH_BUFFER)
+)(reset_search_buffer)
