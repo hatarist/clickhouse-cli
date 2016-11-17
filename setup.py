@@ -22,6 +22,7 @@ setup(
         'prompt-toolkit>=1.0.8',
         'pygments>=2.1.3',
         'requests>=2.11.1',
+        'sqlparse>=0.2.2',
     ],
     zip_safe=False,
     entry_points={

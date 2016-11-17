@@ -1,10 +1,12 @@
 import click
+import sqlparse
 from prompt_toolkit import Application, CommandLineInterface
 from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
 
 from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS
+from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
 from clickhouse_cli.ui.lexer import CHLexer
 from clickhouse_cli.ui.prompt import (
     CLIBuffer,
@@ -15,6 +17,12 @@ from clickhouse_cli.ui.prompt import (
 )
 from clickhouse_cli.ui.style import CHStyle, Echo
 from clickhouse_cli.config import read_config
+
+
+# monkey-patch sqlparse
+sqlparse.keywords.KEYWORDS = KEYWORDS
+sqlparse.keywords.KEYWORDS_COMMON = {}
+sqlparse.keywords.KEYWORDS_ORACLE = {}
 
 
 def show_version():
@@ -129,7 +137,7 @@ class CLI:
         try:
             while True:
                 cli_input = cli.run(reset_current_buffer=True)
-                self.handle_input(cli_input.text.split('\n'))
+                self.handle_input(cli_input.text)
         except EOFError:
             self.echo.success("Bye.")
 
@@ -138,7 +146,17 @@ class CLI:
         query_buffer = ''
         was_finished = True
 
-        for query in input_data:
+        for query in sqlparse.split(input_data):
+            parsed_query = sqlparse.parse(query)
+
+            query = sqlparse.format(
+                query,
+                reindent=True,
+                indent_width=4,
+                strip_comments=True,
+                keyword_case='upper'
+            )
+
             if not query_is_finished(query, self.multiline):
                 query_buffer = query_buffer + ' ' + query.strip()
                 was_finished = False
@@ -148,7 +166,6 @@ class CLI:
                     was_finished = True
                     query_buffer = ''
 
-                query = query.strip()
                 self.handle_query(query)
 
         if not self.multiline and query_buffer != '':
@@ -238,7 +255,9 @@ class CLI:
         self.echo.print('\n')
 
 
-@click.command()
+@click.command(context_settings=dict(
+    ignore_unknown_options=True,
+))
 @click.option('--host', '-h', default='localhost', help="Server host")
 @click.option('--port', '-p', default='8123', type=click.INT, help="Server HTTP port")
 @click.option('--user', '-u', default='default', help="User")
