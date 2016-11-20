@@ -2,6 +2,7 @@ import logging
 import re
 
 import requests
+import sqlparse
 
 from .definitions import FORMATTABLE_QUERIES
 
@@ -87,8 +88,15 @@ class Client(object):
         self.stacktrace = stacktrace
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, **kwargs):
-        query = query.strip().rstrip(';').rstrip()
+        query = sqlparse.format(
+            query,
+            reindent=True,
+            indent_width=4,
+            strip_comments=True,
+            keyword_case='upper'
+        ).rstrip(';')
 
+        # TODO: user sqlparse's parser instead
         query_split = query.split()
 
         if len(query_split) == 0:

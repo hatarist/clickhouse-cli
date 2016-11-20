@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs
+
 import click
 import sqlparse
 from prompt_toolkit import Application, CommandLineInterface
@@ -17,7 +19,6 @@ from clickhouse_cli.ui.prompt import (
 )
 from clickhouse_cli.ui.style import CHStyle, Echo
 from clickhouse_cli.config import read_config
-
 
 # monkey-patch sqlparse
 sqlparse.keywords.KEYWORDS = KEYWORDS
@@ -143,37 +144,26 @@ class CLI:
 
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
-        query_buffer = ''
+        query_buffer = query = ''
         was_finished = True
 
         for query in sqlparse.split(input_data):
-            parsed_query = sqlparse.parse(query)
-
-            query = sqlparse.format(
-                query,
-                reindent=True,
-                indent_width=4,
-                strip_comments=True,
-                keyword_case='upper'
-            )
-
+            # parsed_query = sqlparse.parse(query)
             if not query_is_finished(query, self.multiline):
-                query_buffer = query_buffer + ' ' + query.strip()
+                query = (query_buffer + '\n' + query)
                 was_finished = False
+                continue
             else:
                 if not was_finished:
-                    query = (query_buffer + ' ' + query).strip()
+                    query = (query_buffer + '\n' + query)
                     was_finished = True
                     query_buffer = ''
-
                 self.handle_query(query)
 
-        if not self.multiline and query_buffer != '':
-            self.handle_query(query_buffer)
+        if not self.multiline and query.strip() != '':
+            self.handle_query(query)
 
     def handle_query(self, query, data=None, stream=False):
-        query = query.strip()
-
         if query == '':
             return
         elif query in EXIT_COMMANDS:
