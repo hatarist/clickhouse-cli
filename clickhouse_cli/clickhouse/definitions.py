@@ -43,6 +43,17 @@ FUNCTIONS = (
     'toFixedString',
     'toStringCutToZero',
 
+    'toUInt8OrZero',
+    'toUInt16OrZero',
+    'toUInt32OrZero',
+    'toUInt64OrZero',
+    'toInt8OrZero',
+    'toInt16OrZero',
+    'toInt32OrZero',
+    'toInt64OrZero',
+    'toFloat32OrZero',
+    'toFloat64OrZero'
+
     'reinterpretAsUInt8',
     'reinterpretAsUInt16',
     'reinterpretAsUInt32',
