@@ -32,7 +32,7 @@ def show_version():
 
 class CLI:
 
-    def __init__(self, host, port, user, password, database, format, format_stdin, multiline, stacktrace):
+    def __init__(self, host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace):
         self.config = None
 
         self.host = host
@@ -40,6 +40,7 @@ class CLI:
         self.user = user
         self.password = password
         self.database = database
+        self.settings = {k: v[0] for k, v in parse_qs(settings).items()}
         self.format = format
         self.format_stdin = format_stdin
         self.multiline = multiline
@@ -48,7 +49,7 @@ class CLI:
         self.echo = Echo(verbose=True)
 
         self.url = 'http://{host}:{port}/'.format(host=host, port=port)
-        self.client = Client(self.url, self.user, self.password, self.database, self.stacktrace)
+        self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
 
     def connect(self):
         print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
@@ -253,6 +254,7 @@ class CLI:
 @click.option('--user', '-u', default='default', help="User")
 @click.option('--password', '-P', is_flag=True, help="Password")
 @click.option('--database', '-d', default='default', help="Database")
+@click.option('--settings', '-s', help="Query string to be sent with every query")
 @click.option('--query', '-q', help="Query to execute")
 @click.option('--format', '-f', help="Output format for the interactive mode")
 @click.option('--format-stdin', '-F', help="Output format for stdin/file queries")
@@ -260,7 +262,7 @@ class CLI:
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('sqlfile', nargs=1, default=False, type=click.File('r'))
-def run(host, port, user, password, database, query, format, format_stdin, multiline, stacktrace, version, sqlfile):
+def run_cli(host, port, user, password, database, settings, query, format, format_stdin, multiline, stacktrace, version, sqlfile):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -282,9 +284,9 @@ def run(host, port, user, password, database, query, format, format_stdin, multi
         sql_input = sqlfile.readlines()
 
     # TODO: Rename the CLI's instance into something more feasible
-    cli = CLI(host, port, user, password, database, format, format_stdin, multiline, stacktrace)
+    cli = CLI(host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace)
     cli.run(query=query, data=sql_input)
 
 
 if __name__ == '__main__':
-    run()
+    run_cli()

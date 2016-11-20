@@ -33,6 +33,7 @@ But, though, we have:
       -u, --user TEXT          User
       -P, --password           Password
       -d, --database TEXT      Database
+      -s, --settings TEXT      Query string to be sent with every query
       -f, --format TEXT        Output format for the interactive mode
       -F, --format-stdin TEXT  Output format for stdin/file queries
       -m, --multiline          Enable multiline shell
@@ -116,3 +117,8 @@ But, though, we have:
     └───────────────────────┴──────────┘
 
     Ok. 20 rows in set. Elapsed: 1.317 sec.
+
+
+## Custom settings
+
+    $ clickhouse-cli -h 10.1.1.14 -s 'max_memory_usage=20000000000&enable_http_compression=1'

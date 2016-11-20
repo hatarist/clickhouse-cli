@@ -80,11 +80,12 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user='default', password=None, database='default', stacktrace=False):
+    def __init__(self, url, user='default', password=None, database='default', settings=None, stacktrace=False):
         self.url = url
         self.user = user
         self.password = password or ''
         self.database = database
+        self.settings = settings or {}
         self.stacktrace = stacktrace
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, **kwargs):
@@ -122,7 +123,7 @@ class Client(object):
         if self.stacktrace:
             params['stacktrace'] = 1
 
-        params['enable_http_compression'] = 1
+        params.update(self.settings)
 
         response = None
         try:
