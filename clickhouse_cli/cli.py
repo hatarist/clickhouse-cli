@@ -145,23 +145,8 @@ class CLI:
 
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
-        query_buffer = query = ''
-        was_finished = True
 
         for query in sqlparse.split(input_data):
-            # parsed_query = sqlparse.parse(query)
-            if not query_is_finished(query, self.multiline):
-                query = (query_buffer + '\n' + query)
-                was_finished = False
-                continue
-            else:
-                if not was_finished:
-                    query = (query_buffer + '\n' + query)
-                    was_finished = True
-                    query_buffer = ''
-                self.handle_query(query)
-
-        if not self.multiline and query.strip() != '':
             self.handle_query(query)
 
     def handle_query(self, query, data=None, stream=False):
