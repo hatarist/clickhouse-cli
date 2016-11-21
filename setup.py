@@ -27,7 +27,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'clickhouse-cli = clickhouse_cli.cli:run'
+            'clickhouse-cli = clickhouse_cli.cli:run_cli'
         ]
     }
 )
