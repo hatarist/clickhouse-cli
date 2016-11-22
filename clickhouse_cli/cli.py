@@ -145,11 +145,10 @@ class CLI:
 
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
-
         for query in sqlparse.split(input_data):
-            self.handle_query(query)
+            self.handle_query(query, verbose=True)
 
-    def handle_query(self, query, data=None, stream=False):
+    def handle_query(self, query, data=None, stream=False, verbose=False):
         if query == '':
             return
         elif query in EXIT_COMMANDS:
@@ -189,7 +188,7 @@ class CLI:
         response = ''
 
         try:
-            response = self.client.query(query, fmt=self.format, data=data, stream=stream)
+            response = self.client.query(query, fmt=self.format, data=data, stream=stream, verbose=verbose)
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)

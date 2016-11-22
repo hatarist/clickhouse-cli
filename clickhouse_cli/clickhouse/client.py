@@ -3,9 +3,13 @@ import re
 
 import requests
 import sqlparse
+import pygments
 
-from .definitions import FORMATTABLE_QUERIES
+from pygments.lexers import SqlLexer
+from pygments.formatters import TerminalTrueColorFormatter
 
+from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
+from clickhouse_cli.ui.style import CHPygmentsStyle
 
 logger = logging.getLogger('main')
 
@@ -88,7 +92,7 @@ class Client(object):
         self.settings = settings or {}
         self.stacktrace = stacktrace
 
-    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, **kwargs):
+    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, **kwargs):
         query = sqlparse.format(
             query,
             reindent=True,
@@ -96,6 +100,14 @@ class Client(object):
             strip_comments=True,
             keyword_case='upper'
         ).rstrip(';')
+
+        if verbose:
+            # Highlight the SQL query
+            print('\n' + pygments.highlight(
+                query,
+                SqlLexer(),
+                TerminalTrueColorFormatter(style=CHPygmentsStyle)
+            ))
 
         # TODO: user sqlparse's parser instead
         query_split = query.split()
