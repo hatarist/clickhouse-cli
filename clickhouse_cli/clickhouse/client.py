@@ -69,16 +69,18 @@ class Response(object):
 
             self.data = response.text
 
-            lines = len(self.data.split('\n'))
+            lines = self.data.split('\n')
 
             if self.data == '' or not lines:
                 self.rows = 0
+            elif fmt.startswith('Pretty'):
+                self.rows = sum(1 for line in lines if line.startswith('│'))
             elif fmt in ('TabSeparated', 'CSV'):
-                self.rows = lines - 1
-            elif fmt in ('TabSeparatedWithNames', ):
-                self.rows = lines - 2
-            elif fmt in ('PrettyCompactMonoBlock', 'TabSeparatedWithNamesAndTypes'):
-                self.rows = lines - 3
+                self.rows = len(lines) - 1
+            elif fmt in ('TabSeparatedWithNames', 'CSVWithNames'):
+                self.rows = len(lines) - 2
+            elif fmt in ('TabSeparatedWithNamesAndTypes'):
+                self.rows = len(lines) - 3
         else:
             self.data = response
 
@@ -137,6 +139,10 @@ class Client(object):
             params['stacktrace'] = 1
 
         params.update(self.settings)
+
+        if 'query_id' in kwargs:
+            params['replace_running_query'] = 1
+            params['query_id'] = kwargs.pop('query_id')
 
         response = None
         try:

@@ -81,7 +81,7 @@ But, though, it has:
 
     Ok.
 
-     :) SHOW TABLES
+     :) \dt
 
     ┌─name───┐
     │ ontime │

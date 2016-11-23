@@ -166,6 +166,8 @@ class CLI:
                 ['\c', "Change the current database."],
                 ['\d, \dt', "Show tables in the current database."],
                 ['\d+', "Show table's schema."],
+                ['\ps', "Show current queries."],
+                ['\kill', "Kill query."],
                 ['', ''],
             ]
 
@@ -182,6 +184,17 @@ class CLI:
             query = 'DESCRIBE TABLE ' + query[4:]
         elif query.startswith('\c '):
             query = 'USE ' + query[3:]
+        elif query.startswith('\ps'):
+            query = 'SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes'
+        elif query.startswith('\kill '):
+            response = self.client.query(
+                'SELECT 1',
+                fmt='TabSeparated',
+                stream=False,
+                verbose=False,
+                query_id=query[6:].strip()
+            )
+            return
 
         response = ''
 

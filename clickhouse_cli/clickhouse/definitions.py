@@ -624,6 +624,8 @@ REDIRECTION_COMMANDS = (
     '\dt',
     '\c',
     '\l',
+    '\ps',
+    '\kill',
 )
 
 INTERNAL_COMMANDS = EXIT_COMMANDS + HELP_COMMANDS + REDIRECTION_COMMANDS
