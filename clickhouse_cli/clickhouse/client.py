@@ -10,6 +10,7 @@ from pygments.formatters import TerminalTrueColorFormatter
 
 from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
 from clickhouse_cli.ui.style import CHPygmentsStyle
+from clickhouse_cli.ui.lexer import CHLexer
 
 logger = logging.getLogger('main')
 
@@ -105,7 +106,7 @@ class Client(object):
             # Highlight the SQL query
             print('\n' + pygments.highlight(
                 query,
-                SqlLexer(),
+                CHLexer(),
                 TerminalTrueColorFormatter(style=CHPygmentsStyle)
             ))
 

@@ -1,26 +1,24 @@
 from urllib.parse import parse_qs
 
 import click
+import pygments
 import sqlparse
+from pygments.formatters import TerminalTrueColorFormatter
 from prompt_toolkit import Application, CommandLineInterface
+from prompt_toolkit.layout.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
 
 from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
-from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS
+from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
-from clickhouse_cli.ui.lexer import CHLexer
-from clickhouse_cli.ui.prompt import (
-    CLIBuffer,
-    KeyBinder,
-    get_continuation_tokens,
-    get_prompt_tokens,
-    query_is_finished,
-)
-from clickhouse_cli.ui.style import CHStyle, Echo
+from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer, CHCSVFormatLexer
+from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
+from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.config import read_config
 
 # monkey-patch sqlparse
+sqlparse.keywords.SQL_REGEX = CHLexer.tokens
 sqlparse.keywords.KEYWORDS = KEYWORDS
 sqlparse.keywords.KEYWORDS_COMMON = {}
 sqlparse.keywords.KEYWORDS_ORACLE = {}
@@ -114,7 +112,7 @@ class CLI:
             return
 
         layout = create_prompt_layout(
-            lexer=CHLexer,
+            lexer=PygmentsLexer(CHLexer),
             get_prompt_tokens=get_prompt_tokens,
             get_continuation_tokens=get_continuation_tokens,
             multiline=self.multiline,
@@ -208,7 +206,20 @@ class CLI:
         if stream:
             print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
-            print(response.data, end='')
+            if response.format in PRETTY_FORMATS:
+                print(pygments.highlight(
+                    response.data,
+                    CHPrettyFormatLexer(),
+                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                ))
+            elif response.format in ('CSV', 'CSVWithNames'):
+                print(pygments.highlight(
+                    response.data,
+                    CHCSVFormatLexer(),
+                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                ))
+            else:
+                print(response.data)
 
         if response.message != '':
             self.echo.print()

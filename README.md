@@ -4,11 +4,10 @@ An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex
 It works over the HTTP port, so there are limitations:
 
   - Doesn't support sessions
-  - Doesn't support query abortion
+  - Doesn't abort queries
   - Doesn't show progress bar
-  - Doesn't abort processing
 
-But, though, we have:
+But, though, it has:
 
   - Autocompletion (WIP)
   - Syntax highlighting (WIP)
@@ -33,7 +32,7 @@ But, though, we have:
       -u, --user TEXT          User
       -P, --password           Password
       -d, --database TEXT      Database
-      -s, --settings TEXT      Query string to be sent with every query
+      -s, --settings TEXT      Query string to be appended to every query
       -f, --format TEXT        Output format for the interactive mode
       -F, --format-stdin TEXT  Output format for stdin/file queries
       -m, --multiline          Enable multiline shell
