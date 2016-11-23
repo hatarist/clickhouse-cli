@@ -1,6 +1,9 @@
 from click import secho
-from prompt_toolkit.styles import style_from_dict
-from prompt_toolkit.token import Token
+
+from pygments.style import Style
+from pygments.token import Keyword, Name, Comment, String, Error, Number, Operator, Generic, Token, Whitespace
+# from prompt_toolkit.token import Token as PTToken
+from prompt_toolkit.styles import style_from_pygments
 
 
 RED = "#cb0f1e"
@@ -12,32 +15,54 @@ BLUE = "#387be8"
 PURPLE = "#860093"
 
 
-CHStyle = style_from_dict({
-    # Token.Type: AQUA,
-    # Token.Format: AQUA,
-    # Token.Keyword: BLUE,
-    # Token.String: YELLOW,
-    # Token.Name: GREEN,
-    # Token.Pattern: RED,
-    # Token.Number: PURPLE,
-    Token.Whitespace: '#888888',
-    Token.Token: '#ffffff',
-    Token.Text: '#ffffff',
-    Token.Generic.Output: '#444444 bg:#222222',
-    Token.Keyword: '#fb660a',
-    Token.Number: '#0086f7',
-    Token.Name: '#fb660a',
-    Token.Comment: '#008800 bg:#0f140f italic',
-    Token.Name.Attribute: '#ff0086 bold',
-    Token.String: '#0086d2',
-    Token.Name.Function: '#ff0086 bold',
-    Token.Generic.Heading: '#ffffff bold',
-    Token.Generic.Subheading: '#ffffff bold',
-    Token.Keyword.Type: '#21ce1d bold',
-    Token.Keyword.Format: '#21ce1d bold',
-    Token.Comment.Preproc: '#ff0007 bold',
-    Token.Prompt: 'bold',
-})
+class CHPygmentsStyle(Style):
+    background_color = '#202020'
+    highlight_color = '#404040'
+
+    styles = {
+        Token: '#d0d0d0',
+        Whitespace: '#666666',
+
+        Comment: 'italic #999999',
+        Comment.Preproc: 'noitalic bold #cd2828',
+        Comment.Special: 'noitalic bold #e50808 bg:#520000',
+
+        Keyword: 'bold #6ab825',
+        Keyword.Pseudo: 'nobold',
+        Operator.Word: 'bold #6ab825',
+
+        String: '#ed9d13',
+        String.Other: '#ffa500',
+
+        Number: '#3677a9',
+
+        Name.Builtin: '#24909d',
+        Name.Variable: '#40ffff',
+        Name.Constant: '#40ffff',
+        Name.Class: 'underline #447fcf',
+        Name.Function: '#447fcf',
+        Name.Namespace: 'underline #447fcf',
+        Name.Exception: '#bbbbbb',
+        Name.Tag: 'bold #6ab825',
+        Name.Attribute: '#bbbbbb',
+        Name.Decorator: '#ffa500',
+
+        Generic.Heading: 'bold #ffffff',
+        Generic.Subheading: 'underline #ffffff',
+        Generic.Deleted: '#d22323',
+        Generic.Inserted: '#589819',
+        Generic.Error: '#d22323',
+        Generic.Emph: 'italic',
+        Generic.Strong: 'bold',
+        Generic.Prompt: '#eeeeee',
+        Generic.Output: '#ffffff',
+        Generic.Traceback: '#d22323',
+
+        Error: 'bg:#e3d2d2 #a61717'
+    }
+
+
+CHStyle = style_from_pygments(CHPygmentsStyle)
 
 
 class Echo(object):

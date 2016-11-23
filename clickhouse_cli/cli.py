@@ -1,26 +1,24 @@
 from urllib.parse import parse_qs
 
 import click
+import pygments
 import sqlparse
+from pygments.formatters import TerminalTrueColorFormatter
 from prompt_toolkit import Application, CommandLineInterface
+from prompt_toolkit.layout.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
 
 from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
-from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS
+from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
-from clickhouse_cli.ui.lexer import CHLexer
-from clickhouse_cli.ui.prompt import (
-    CLIBuffer,
-    KeyBinder,
-    get_continuation_tokens,
-    get_prompt_tokens,
-    query_is_finished,
-)
-from clickhouse_cli.ui.style import CHStyle, Echo
+from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer, CHCSVFormatLexer
+from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
+from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.config import read_config
 
 # monkey-patch sqlparse
+sqlparse.keywords.SQL_REGEX = CHLexer.tokens
 sqlparse.keywords.KEYWORDS = KEYWORDS
 sqlparse.keywords.KEYWORDS_COMMON = {}
 sqlparse.keywords.KEYWORDS_ORACLE = {}
@@ -114,7 +112,7 @@ class CLI:
             return
 
         layout = create_prompt_layout(
-            lexer=CHLexer,
+            lexer=PygmentsLexer(CHLexer),
             get_prompt_tokens=get_prompt_tokens,
             get_continuation_tokens=get_continuation_tokens,
             multiline=self.multiline,
@@ -145,26 +143,10 @@ class CLI:
 
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
-        query_buffer = query = ''
-        was_finished = True
-
         for query in sqlparse.split(input_data):
-            # parsed_query = sqlparse.parse(query)
-            if not query_is_finished(query, self.multiline):
-                query = (query_buffer + '\n' + query)
-                was_finished = False
-                continue
-            else:
-                if not was_finished:
-                    query = (query_buffer + '\n' + query)
-                    was_finished = True
-                    query_buffer = ''
-                self.handle_query(query)
+            self.handle_query(query, verbose=True)
 
-        if not self.multiline and query.strip() != '':
-            self.handle_query(query)
-
-    def handle_query(self, query, data=None, stream=False):
+    def handle_query(self, query, data=None, stream=False, verbose=False):
         if query == '':
             return
         elif query in EXIT_COMMANDS:
@@ -184,6 +166,8 @@ class CLI:
                 ['\c', "Change the current database."],
                 ['\d, \dt', "Show tables in the current database."],
                 ['\d+', "Show table's schema."],
+                ['\ps', "Show current queries."],
+                ['\kill', "Kill query."],
                 ['', ''],
             ]
 
@@ -200,11 +184,22 @@ class CLI:
             query = 'DESCRIBE TABLE ' + query[4:]
         elif query.startswith('\c '):
             query = 'USE ' + query[3:]
+        elif query.startswith('\ps'):
+            query = 'SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes'
+        elif query.startswith('\kill '):
+            response = self.client.query(
+                'SELECT 1',
+                fmt='TabSeparated',
+                stream=False,
+                verbose=False,
+                query_id=query[6:].strip()
+            )
+            return
 
         response = ''
 
         try:
-            response = self.client.query(query, fmt=self.format, data=data, stream=stream)
+            response = self.client.query(query, fmt=self.format, data=data, stream=stream, verbose=verbose)
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)
@@ -224,7 +219,20 @@ class CLI:
         if stream:
             print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
-            print(response.data, end='')
+            if response.format in PRETTY_FORMATS:
+                print(pygments.highlight(
+                    response.data,
+                    CHPrettyFormatLexer(),
+                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                ))
+            elif response.format in ('CSV', 'CSVWithNames'):
+                print(pygments.highlight(
+                    response.data,
+                    CHCSVFormatLexer(),
+                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                ))
+            else:
+                print(response.data)
 
         if response.message != '':
             self.echo.print()

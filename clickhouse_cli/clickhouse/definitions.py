@@ -170,6 +170,7 @@ FUNCTIONS = (
     # array / string
     'splitByChar',
     'splitByString',
+    'arrayStringConcat',
     'alphaTokens',
 
     # URL
@@ -347,7 +348,7 @@ CASE_INSENSITIVE_FUNCTIONS = (
     'MAX',
 )
 
-AGGREGATION_FUNCTIONS = (
+AGGREGATION_FUNCTIONS_BASE = (
     'count',
     'any',
     'anyLast',
@@ -384,6 +385,13 @@ AGGREGATION_FUNCTIONS = (
     'uniqUpTo',
 )
 
+AGGREGATION_FUNCTIONS = (
+    AGGREGATION_FUNCTIONS_BASE +
+    tuple(name + 'If' for name in AGGREGATION_FUNCTIONS_BASE) +
+    tuple(name + 'Array' for name in AGGREGATION_FUNCTIONS_BASE) +
+    tuple(name + 'State' for name in AGGREGATION_FUNCTIONS_BASE)
+)
+
 DATATYPES = (
     'UInt8',
     'UInt16',
@@ -414,10 +422,21 @@ OPERATORS = (
     'GLOBAL NOT IN',
     'AND',
     'OR',
-    'NOT'
+    'NOT',
+    'BETWEEN',
 )
 
-FORMATS = (
+PRETTY_FORMATS = (
+    'Pretty',
+    'PrettyCompact',
+    'PrettyCompactMonoBlock',
+    'PrettySpace',
+    'PrettyNoEscapes',
+    'PrettyCompactNoEscapes',
+    'PrettySpaceNoEscapes',
+)
+
+FORMATS = PRETTY_FORMATS + (
     'Native',
     'TabSeparated',
     'TabSeparatedWithNames',
@@ -427,13 +446,6 @@ FORMATS = (
     'CSV',
     'CSVWithNames',
     'RowBinary',
-    'Pretty',
-    'PrettyCompact',
-    'PrettyCompactMonoBlock',
-    'PrettySpace',
-    'PrettyNoEscapes',
-    'PrettyCompactNoEscapes',
-    'PrettySpaceNoEscapes',
     'Vertical',
     'Values',
     'JSON',
@@ -554,6 +566,10 @@ KEYWORDS = (
     'VIEW',
     'WHERE',
     'WITH',
+    'CASE',
+    'WHEN',
+    'THEN',
+    'END',
 )
 
 EXIT_COMMANDS = (
@@ -608,6 +624,8 @@ REDIRECTION_COMMANDS = (
     '\dt',
     '\c',
     '\l',
+    '\ps',
+    '\kill',
 )
 
 INTERNAL_COMMANDS = EXIT_COMMANDS + HELP_COMMANDS + REDIRECTION_COMMANDS
