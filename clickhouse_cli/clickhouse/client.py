@@ -94,6 +94,28 @@ class Client(object):
         self.settings = settings or {}
         self.stacktrace = stacktrace
 
+    def test_query(self, custom_params):
+        response = None
+        query = 'SELECT 1'
+        params = {
+            'query': query,
+            'database': self.database if self.database != 'default' else 'default',
+        }
+        params.update(custom_params)
+
+        try:
+            response = requests.post(
+                self.url, params=params, auth=(self.user, self.password), stream=False
+            )
+        except requests.exceptions.ConnectTimeout:
+            raise TimeoutError
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError
+
+        if response is not None and response.status_code != 200:
+            raise DBException(response, query=query)
+        return True
+
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, **kwargs):
         query = sqlparse.format(
             query,
@@ -117,10 +139,34 @@ class Client(object):
         if len(query_split) == 0:
             return Response(query, fmt)
 
-        # A `USE database;` kind of query that we should handle ourselves since sessions aren't supported over HTTP
+        # Since sessions aren't supported over HTTP, we have to make some quirks:
+        # USE database;
         if query_split[0].upper() == 'USE' and len(query_split) == 2:
+            old_database = self.database
             self.database = query_split[1]
+            try:
+                self.test_query(self.settings)
+            except DBException as e:
+                self.database = old_database
+                raise e
+
             return Response(query, fmt, message='Changed the current database to {0}.'.format(self.database))
+
+        # SET foo = bar;
+        if query_split[0].upper() == 'SET' and len(query_split) == 4:
+            key, value = query_split[1], query_split[3]
+            old_value = self.settings.get(key)
+            self.settings[key] = value
+            try:
+                self.test_query(self.settings)
+            except DBException as e:
+                if old_value is not None:
+                    self.settings[key] = old_value
+                else:
+                    del self.settings[key]
+                raise e
+
+            return Response(query, fmt, response='', message='Set {0} to {1}.'.format(key, value))
 
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() == 'FORMAT':

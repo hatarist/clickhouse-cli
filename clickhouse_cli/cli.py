@@ -149,25 +149,26 @@ class CLI:
     def handle_query(self, query, data=None, stream=False, verbose=False):
         if query == '':
             return
-        elif query in EXIT_COMMANDS:
+        elif query.lower() in EXIT_COMMANDS:
             raise EOFError
-        elif query in ('\?', 'help'):
+        elif query.lower() in ('\?', 'help'):
             rows = [
                 ['', ''],
-                ["clickhouse-cli's custom commands:", ""],
+                ["clickhouse-cli's custom commands:", ''],
                 ['---------------------------------', ''],
-                ['USE db', "Change the current database to `db`."],
+                ['USE', "Change the current database."],
+                ['SET', "Set an option for the current CLI session."],
                 ['QUIT', "Exit clickhouse-cli."],
                 ['HELP', "Show this help message."],
-                ['', ""],
-                ["PostgreSQL-like custom commands:", ""],
+                ['', ''],
+                ["PostgreSQL-like custom commands:", ''],
                 ['--------------------------------', ''],
                 ['\l', "Show databases."],
                 ['\c', "Change the current database."],
                 ['\d, \dt', "Show tables in the current database."],
                 ['\d+', "Show table's schema."],
                 ['\ps', "Show current queries."],
-                ['\kill', "Kill query."],
+                ['\kill', "Kill query by its ID."],
                 ['', ''],
             ]
 
@@ -219,26 +220,28 @@ class CLI:
         if stream:
             print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
-            if response.format in PRETTY_FORMATS:
-                print(pygments.highlight(
-                    response.data,
-                    CHPrettyFormatLexer(),
-                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
-                ))
-            elif response.format in ('CSV', 'CSVWithNames'):
-                print(pygments.highlight(
-                    response.data,
-                    CHCSVFormatLexer(),
-                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
-                ))
-            else:
-                print(response.data)
+            if response.data != '':
+                if response.format in PRETTY_FORMATS:
+                    print(pygments.highlight(
+                        response.data,
+                        CHPrettyFormatLexer(),
+                        TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                    ))
+                elif response.format in ('CSV', 'CSVWithNames'):
+                    print(pygments.highlight(
+                        response.data,
+                        CHCSVFormatLexer(),
+                        TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                    ))
+                else:
+                    print(response.data)
+                    print()
 
         if response.message != '':
-            self.echo.print()
             self.echo.print(response.message)
+            self.echo.print()
 
-        self.echo.success('\nOk. ', nl=False)
+        self.echo.success('Ok. ', nl=False)
 
         if response.rows is not None:
             self.echo.print('{rows_count} row{rows_plural} in set.'.format(

@@ -43,7 +43,7 @@ class CHLexer(RegexLexer):
             (words(AGGREGATION_FUNCTIONS, suffix=r'(\s*)(\()'), bygroups(Name.Function, Text, Punctuation)),
             (words(CASE_INSENSITIVE_FUNCTIONS, prefix=r'(?i)', suffix=r'\b'), Name.Function),
             (words(FUNCTIONS, suffix=r'(\s*)(\()'), bygroups(Name.Function, Text, Punctuation)),
-            (r'^\\\w+', Text),
+            (r'^\\(\?|\w+)', Text),
 
             (r'(?i)[a-z_]\w*', Text),
             (r'(?i)[;:()\[\],.]', Punctuation),
