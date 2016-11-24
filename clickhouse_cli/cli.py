@@ -80,11 +80,11 @@ class CLI:
     def load_config(self):
         self.config = read_config()
 
-        if self.config.getboolean('main', 'multiline'):
-            self.multiline = True
-
-        self.format = self.format or self.config.get('main', 'format', fallback='PrettyCompactMonoBlock')
-        self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin', fallback='TabSeparated')
+        self.multiline = self.config.getboolean('main', 'multiline')
+        self.format = self.format or self.config.get('main', 'format')
+        self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin')
+        self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
+        self.highlight_output = self.config.getboolean('main', 'highlight_output')
 
     def run(self, query=None, data=None):
         self.load_config()
@@ -200,7 +200,14 @@ class CLI:
         response = ''
 
         try:
-            response = self.client.query(query, fmt=self.format, data=data, stream=stream, verbose=verbose)
+            response = self.client.query(
+                query,
+                fmt=self.format,
+                data=data,
+                stream=stream,
+                verbose=verbose,
+                show_formatted=self.show_formatted_query
+            )
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)
@@ -221,13 +228,13 @@ class CLI:
             print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
             if response.data != '':
-                if response.format in PRETTY_FORMATS:
+                if self.highlight_output and response.format in PRETTY_FORMATS:
                     print(pygments.highlight(
                         response.data,
                         CHPrettyFormatLexer(),
                         TerminalTrueColorFormatter(style=CHPygmentsStyle)
                     ))
-                elif response.format in ('CSV', 'CSVWithNames'):
+                elif self.highlight_output and response.format in ('CSV', 'CSVWithNames'):
                     print(pygments.highlight(
                         response.data,
                         CHCSVFormatLexer(),

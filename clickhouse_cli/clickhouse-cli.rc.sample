@@ -10,3 +10,9 @@ format = PrettyCompactMonoBlock
 
 # Preferred output format for the non-interactive mode (file/stdin)
 format_stdin = TabSeparated
+
+# Show the reformatted query after its execution
+show_formatted_query = True
+
+# Syntax highlight certain output in the interactive mode:
+highlight_output = True

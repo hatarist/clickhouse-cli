@@ -122,10 +122,10 @@ class Client(object):
             reindent=True,
             indent_width=4,
             strip_comments=True,
-            keyword_case='upper'
+            # keyword_case='upper'  # works poorly in a few cases
         ).rstrip(';')
 
-        if verbose:
+        if verbose and kwargs.pop('show_formatted', False):
             # Highlight the SQL query
             print('\n' + pygments.highlight(
                 query,
@@ -133,7 +133,7 @@ class Client(object):
                 TerminalTrueColorFormatter(style=CHPygmentsStyle)
             ))
 
-        # TODO: user sqlparse's parser instead
+        # TODO: use sqlparse's parser instead
         query_split = query.split()
 
         if len(query_split) == 0:
