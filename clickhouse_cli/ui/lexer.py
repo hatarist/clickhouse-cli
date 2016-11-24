@@ -1,8 +1,7 @@
 import re
 
-from pygments.lexer import Lexer, RegexLexer, do_insertions, bygroups, words
+from pygments.lexer import RegexLexer, bygroups, words
 from pygments.token import Punctuation, Text, Comment, Operator, Keyword, Name, String, Number, Generic, Whitespace
-from pygments.lexers import get_lexer_by_name, ClassNotFound
 
 from clickhouse_cli.clickhouse.definitions import (
     CASE_INSENSITIVE_FUNCTIONS,
@@ -80,12 +79,16 @@ class CHPrettyFormatLexer(RegexLexer):
         ]
     }
 
-
 class CHCSVFormatLexer(RegexLexer):
+    # TODO: make it more efficient; doesn't match the comma in `123,456` as whitespace
     tokens = {
         'root': [
-            (r'(^"|","|",|,"|"$)', Whitespace),
+            (r'''((?:[^,"]|"[^"]*"')+)''', Generic.Output),
+            (r'""$', Whitespace),
             (r'""', Generic.Output),
-            (r'[^",]', Generic.Output),
+            (r'(^"|","|",|,"",|,""$)', Whitespace),
+            (r'(([^\d])[,]([^\d]))', Generic.Output),
+            (r'[^\d"],[^\d"]', Generic.Output),
+            (r'[",]', Generic.Output),
         ],
     }
