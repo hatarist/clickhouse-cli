@@ -94,18 +94,14 @@ class Client(object):
         self.settings = settings or {}
         self.stacktrace = stacktrace
 
-    def test_query(self, custom_params):
-        response = None
-        query = 'SELECT 1'
-        params = {
-            'query': query,
-            'database': self.database if self.database != 'default' else 'default',
-        }
-        params.update(custom_params)
+    def _query(self, query, extra_params, fmt, stream, data=None, **kwargs):
+        params = {'query': query}
+        params.update(extra_params)
 
+        response = None
         try:
             response = requests.post(
-                self.url, params=params, auth=(self.user, self.password), stream=False
+                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, **kwargs
             )
         except requests.exceptions.ConnectTimeout:
             raise TimeoutError
@@ -114,9 +110,28 @@ class Client(object):
 
         if response is not None and response.status_code != 200:
             raise DBException(response, query=query)
-        return True
 
-    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, **kwargs):
+        return Response(query, fmt, response, stream=stream)
+
+    def test_query(self):
+        params = {'database': self.database}
+        params.update(self.settings)
+        return self._query(
+            'SELECT 1',
+            params,
+            fmt='TabSeparated',
+            stream=False,
+        )
+
+    def kill_query(self, query_id):
+        return self._query(
+            'SELECT 1',
+            {'replace_running_query': 1, 'query_id': query_id},
+            fmt='TabSeparated',
+            stream=False,
+        )
+
+    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(
             query,
             reindent=True,
@@ -145,7 +160,7 @@ class Client(object):
             old_database = self.database
             self.database = query_split[1]
             try:
-                self.test_query(self.settings)
+                self.test_query()
             except DBException as e:
                 self.database = old_database
                 raise e
@@ -158,7 +173,7 @@ class Client(object):
             old_value = self.settings.get(key)
             self.settings[key] = value
             try:
-                self.test_query(self.settings)
+                self.test_query()
             except DBException as e:
                 if old_value is not None:
                     self.settings[key] = old_value
@@ -175,31 +190,9 @@ class Client(object):
                 if query_split[0].upper() != 'INSERT' or data is not None:
                     query = query + ' FORMAT {fmt}'.format(fmt=fmt)
 
-        params = {'query': query}
-
-        if self.database != 'default':
-            params['database'] = self.database
-
-        if self.stacktrace:
-            params['stacktrace'] = 1
+        params = {'database': self.database, 'stacktrace': int(self.stacktrace)}
+        if query_id:
+            params['query_id'] = query_id
 
         params.update(self.settings)
-
-        if 'query_id' in kwargs:
-            params['replace_running_query'] = 1
-            params['query_id'] = kwargs.pop('query_id')
-
-        response = None
-        try:
-            response = requests.post(
-                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, **kwargs
-            )
-        except requests.exceptions.ConnectTimeout:
-            raise TimeoutError
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError
-
-        if response is not None and response.status_code != 200:
-            raise DBException(response, query=query)
-
-        return Response(query, fmt, response, stream=stream)
+        return self._query(query, params, fmt=fmt, stream=stream, **kwargs)

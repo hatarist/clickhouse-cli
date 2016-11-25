@@ -1,3 +1,4 @@
+from uuid import uuid4
 from urllib.parse import parse_qs
 
 import click
@@ -43,6 +44,8 @@ class CLI:
         self.format_stdin = format_stdin
         self.multiline = multiline
         self.stacktrace = stacktrace
+
+        self.query_ids = []
 
         self.echo = Echo(verbose=True)
 
@@ -136,17 +139,29 @@ class CLI:
 
         try:
             while True:
-                cli_input = cli.run(reset_current_buffer=True)
-                self.handle_input(cli_input.text)
+                try:
+                    cli_input = cli.run(reset_current_buffer=True)
+                    self.handle_input(cli_input.text)
+                except KeyboardInterrupt:
+                    # Attempt to terminate queries
+                    for query_id in self.query_ids:
+                        self.client.kill_query(query_id)
+
+                    self.echo.error("\nQuery was terminated.")
+                finally:
+                    self.query_ids = []
         except EOFError:
             self.echo.success("Bye.")
 
     def handle_input(self, input_data):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
+        self.query_ids = []
         for query in sqlparse.split(input_data):
-            self.handle_query(query, verbose=True)
+            query_id = str(uuid4())
+            self.query_ids.append(query_id)
+            self.handle_query(query, verbose=True, query_id=query_id)
 
-    def handle_query(self, query, data=None, stream=False, verbose=False):
+    def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
         if query == '':
             return
         elif query.lower() in EXIT_COMMANDS:
@@ -188,13 +203,7 @@ class CLI:
         elif query.startswith('\ps'):
             query = 'SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes'
         elif query.startswith('\kill '):
-            response = self.client.query(
-                'SELECT 1',
-                fmt='TabSeparated',
-                stream=False,
-                verbose=False,
-                query_id=query[6:].strip()
-            )
+            self.kll_query(query[6:])
             return
 
         response = ''
@@ -206,7 +215,8 @@ class CLI:
                 data=data,
                 stream=stream,
                 verbose=verbose,
-                show_formatted=self.show_formatted_query
+                show_formatted=self.show_formatted_query,
+                query_id=query_id
             )
         except DBException as e:
             self.echo.error("\nReceived exception from server:")

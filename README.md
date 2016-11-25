@@ -3,20 +3,23 @@
 An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex/) DBMS.  
 It works over the HTTP port, so there are limitations:
 
-  - Doesn't support sessions
-  - Doesn't abort queries
-  - Doesn't show progress bar
+  - Doesn't fully support sessions
+  - Doesn't show progress bar and memory usage stats
 
 But, though, it has:
 
   - Autocompletion (WIP)
-  - Syntax highlighting (WIP)
-  - Multiquery by default
+  - Syntax highlighting: queries, output (Pretty*, CSV)
+  - Multiquery mode by default
+  - Session emulation: `SET` is processed locally; custom parameters are requested with every query
+  - Query termination by Ctrl+C (using `replace_running_query`)
+
+  - `\ps` (a shorter version of `SHOW PROCESSLIST`) and `\kill <query-id>` (that aborts the given query)
 
 
 ## Install
 
-    $ pip install clickhouse-cli
+    $ pip3 install clickhouse-cli
 
 
 ## Options
@@ -43,7 +46,8 @@ But, though, it has:
 
 ## Configuration file
 
-    $ cat ~/.clickhouse-cli.rc
+`~/.clickhouse-cli.rc` is here for your service!
+
     [main]
     # Enable multiline mode by default
     multiline = False
@@ -57,15 +61,40 @@ But, though, it has:
     # Preferred output format for the non-interactive mode (file/stdin)
     format_stdin = TabSeparated
 
+    # Show the reformatted query after its execution
+    show_formatted_query = True
+
+    # Syntax highlight certain output in the interactive mode:
+    highlight_output = True
+
+
 
 ## Quickstart
 
     $ clickhouse-cli
-    clickhouse-cli version: 0.1.0
+    clickhouse-cli version: 0.1.6
     Connecting to localhost:8123
     Connected to ClickHouse server.
 
-     :) SHOW DATABASES
+     :) help
+
+    clickhouse-cli's custom commands:
+    ---------------------------------
+    USE     Change the current database.
+    SET     Set an option for the current CLI session.
+    QUIT    Exit clickhouse-cli.
+    HELP    Show this help message.
+
+    PostgreSQL-like custom commands:
+    --------------------------------
+    \l      Show databases.
+    \c      Change the current database.
+    \d, \dt Show tables in the current database.
+    \d+     Show table's schema.
+    \ps     Show current queries.
+    \kill   Kill query by its ID.
+
+     :) \l
 
     ┌─name───────┐
     │ default    │
