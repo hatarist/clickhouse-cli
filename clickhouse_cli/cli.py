@@ -89,6 +89,12 @@ class CLI:
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
 
+        config_settings = dict(self.config.items('settings'))
+        arg_settings = self.settings
+        config_settings.update(arg_settings)
+        self.settings = config_settings
+        self.client.settings = self.settings
+
     def run(self, query=None, data=None):
         self.load_config()
 

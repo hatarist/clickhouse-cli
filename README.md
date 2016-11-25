@@ -67,6 +67,9 @@ But, though, it has:
     # Syntax highlight certain output in the interactive mode:
     highlight_output = True
 
+    [settings]
+    # You can place the server-side settings here!
+    # max_memory_usage = 20000000000
 
 
 ## Quickstart
