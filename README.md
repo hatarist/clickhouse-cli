@@ -19,6 +19,8 @@ But, though, it has:
 
 ## Install
 
+Python 3.4+ is required.
+
     $ pip3 install clickhouse-cli
 
 
