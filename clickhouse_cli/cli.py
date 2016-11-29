@@ -168,7 +168,7 @@ class CLI:
             self.handle_query(query, verbose=True, query_id=query_id)
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
-        if query == '':
+        if query.rstrip(';') == '':
             return
         elif query.lower() in EXIT_COMMANDS:
             raise EOFError
