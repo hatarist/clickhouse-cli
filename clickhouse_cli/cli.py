@@ -232,9 +232,9 @@ class CLI:
                 self.echo.print("\nStack trace:")
                 self.echo.print(e.stacktrace)
 
-                self.echo.print('Elapsed: {elapsed:.3f} sec.\n'.format(
-                    elapsed=e.response.elapsed.total_seconds()
-                ))
+            self.echo.print('\nElapsed: {elapsed:.3f} sec.\n'.format(
+                elapsed=e.response.elapsed.total_seconds()
+            ))
 
             return
 
