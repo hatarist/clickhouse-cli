@@ -78,17 +78,3 @@ class CHPrettyFormatLexer(RegexLexer):
             (r'([┌─┬┐│││└─┴┘├─┼┤]+)', Whitespace),
         ]
     }
-
-class CHCSVFormatLexer(RegexLexer):
-    # TODO: make it more efficient; doesn't match the comma in `123,456` as whitespace
-    tokens = {
-        'root': [
-            (r'''((?:[^,"]|"[^"]*"')+)''', Generic.Output),
-            (r'""$', Whitespace),
-            (r'""', Generic.Output),
-            (r'(^"|","|",|,"",|,""$)', Whitespace),
-            (r'(([^\d])[,]([^\d]))', Generic.Output),
-            (r'[^\d"],[^\d"]', Generic.Output),
-            (r'[",]', Generic.Output),
-        ],
-    }

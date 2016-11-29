@@ -13,7 +13,7 @@ from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
-from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer, CHCSVFormatLexer
+from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.config import read_config
@@ -209,7 +209,7 @@ class CLI:
         elif query.startswith('\ps'):
             query = 'SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes'
         elif query.startswith('\kill '):
-            self.kll_query(query[6:])
+            self.client.kill_query(query[6:])
             return
 
         response = ''
@@ -248,12 +248,6 @@ class CLI:
                     print(pygments.highlight(
                         response.data,
                         CHPrettyFormatLexer(),
-                        TerminalTrueColorFormatter(style=CHPygmentsStyle)
-                    ))
-                elif self.highlight_output and response.format in ('CSV', 'CSVWithNames'):
-                    print(pygments.highlight(
-                        response.data,
-                        CHCSVFormatLexer(),
                         TerminalTrueColorFormatter(style=CHPygmentsStyle)
                     ))
                 else:
