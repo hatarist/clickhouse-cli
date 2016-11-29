@@ -105,7 +105,7 @@ class CLI:
             if query is None:
                 # Run stdin/file as SQL query
                 self.echo.verbose = False
-                return self.handle_input(data)
+                return self.handle_input('\n'.join(data), verbose=False)
 
         if query is not None:
             self.format = self.format_stdin
@@ -159,13 +159,13 @@ class CLI:
         except EOFError:
             self.echo.success("Bye.")
 
-    def handle_input(self, input_data):
+    def handle_input(self, input_data, verbose=True):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
         self.query_ids = []
         for query in sqlparse.split(input_data):
             query_id = str(uuid4())
             self.query_ids.append(query_id)
-            self.handle_query(query, verbose=True, query_id=query_id)
+            self.handle_query(query, verbose=verbose, query_id=query_id)
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
         if query.rstrip(';') == '':
@@ -244,15 +244,15 @@ class CLI:
             print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
             if response.data != '':
-                if self.highlight_output and response.format in PRETTY_FORMATS:
+                if verbose and self.highlight_output and response.format in PRETTY_FORMATS:
                     print(pygments.highlight(
                         response.data,
                         CHPrettyFormatLexer(),
                         TerminalTrueColorFormatter(style=CHPygmentsStyle)
                     ))
                 else:
-                    print(response.data)
-                    print()
+                    print(response.data, end='')
+                    self.echo.print()
 
         if response.message != '':
             self.echo.print(response.message)

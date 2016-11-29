@@ -134,7 +134,7 @@ class Client(object):
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
 
-        if verbose and kwargs.pop('show_formatted', False):
+        if kwargs.pop('show_formatted', False) and verbose:
             # Highlight & reformat the SQL query
             formatted_query = sqlparse.format(
                 query,
