@@ -113,10 +113,13 @@ FUNCTIONS = (
     'substring',
     'substringUTF8',
     'appendTrailingCharIfAbsent',
+    'convertCharset',
 
     # string find
     'position',
     'positionUTF8',
+    'positionCaseInsensitive',
+    'positionCaseInsensitiveUTF8',
     'match',
     'extract',
     'extractAll',
@@ -236,6 +239,7 @@ FUNCTIONS = (
 
     # conditional
     'if',
+    'multiIf',
 
     # math
     'e',
@@ -266,6 +270,7 @@ FUNCTIONS = (
     'regionToDistrict',
     'regionToCountry',
     'regionToContinent',
+    'regionToTopContinent',
     'regionToPopulation',
     'regionIn',
     'regionHierarchy',
@@ -325,8 +330,17 @@ FUNCTIONS = (
     'isFinite',
     'isInfinite',
     'isNaN',
+    'hasColumnInTable',
     'bar',
     'transform',
+    'runningAccumulate',
+    'runningDifference',
+    'rowNumberInAllBlocks',
+    'uptime',
+    'version',
+    'least',
+    'greatest',
+    'formatReadableSize',
 
     'arrayJoin',
 )
@@ -442,6 +456,10 @@ FORMATS = PRETTY_FORMATS + (
     'TabSeparatedWithNames',
     'TabSeparatedWithNamesAndTypes',
     'TabSeparatedRaw',
+    'TSV',
+    'TSVWithNames',
+    'TSVWithNamesAndTypes',
+    'TSVRaw',
     'BlockTabSeparated',
     'CSV',
     'CSVWithNames',
@@ -473,7 +491,7 @@ WRITE_QUERIES = (
     'DROP',
     'RENAME',
     'ALTER',
-    # 'SET',
+    'SET',
     'OPTIMIZE',
 )
 
@@ -569,6 +587,7 @@ KEYWORDS = (
     'CASE',
     'WHEN',
     'THEN',
+    'ELSE',
     'END',
 )
 

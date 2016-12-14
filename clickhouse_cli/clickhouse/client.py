@@ -74,11 +74,11 @@ class Response(object):
                 self.rows = 0
             elif fmt.startswith('Pretty'):
                 self.rows = sum(1 for line in lines if line.startswith('│'))
-            elif fmt in ('TabSeparated', 'CSV'):
+            elif fmt in ('TabSeparated', 'TSV', 'CSV'):
                 self.rows = len(lines) - 1
-            elif fmt in ('TabSeparatedWithNames', 'CSVWithNames'):
+            elif fmt in ('TabSeparatedWithNames', 'TSVWithNames', 'CSVWithNames'):
                 self.rows = len(lines) - 2
-            elif fmt in ('TabSeparatedWithNamesAndTypes'):
+            elif fmt in ('TabSeparatedWithNamesAndTypes', 'TSVWithNamesAndTypes'):
                 self.rows = len(lines) - 3
         else:
             self.data = response
