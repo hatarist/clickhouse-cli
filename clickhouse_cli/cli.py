@@ -44,6 +44,7 @@ class CLI:
         self.format_stdin = format_stdin
         self.multiline = multiline
         self.stacktrace = stacktrace
+        self.server_version = None
 
         self.query_ids = []
 
@@ -56,7 +57,7 @@ class CLI:
         print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
 
         try:
-            response = self.client.query('SELECT 1', fmt='TabSeparated', timeout=10)
+            response = self.client.query('SELECT version();', fmt='TabSeparated', timeout=10)
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return False
@@ -73,11 +74,14 @@ class CLI:
 
             return False
 
-        if response.data != '1\n':
-            self.echo.error("Error: Request failed: `SELECT 1` query failed.")
+        if not response.data.endswith('\n'):
+            self.echo.error("Error: Request failed: `SELECT version();` query failed.")
             return False
 
-        self.echo.success("Connected to ClickHouse server.\n")
+        version = response.data.strip().split('.')
+        self.server_version = (int(version[0]), int(version[1]), int(version[2]))
+
+        self.echo.success("Connected to ClickHouse server v{0}.{1}.{2}.\n".format(*self.server_version))
         return True
 
     def load_config(self):
@@ -207,7 +211,10 @@ class CLI:
         elif query.startswith('\c '):
             query = 'USE ' + query[3:]
         elif query.startswith('\ps'):
-            query = "SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
+            if self.server_version[2] < 54115:
+                query = "SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
+            else:
+                query = "SELECT query_id, user, address, elapsed, read_rows, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
         elif query.startswith('\kill '):
             self.client.kill_query(query[6:])
             return
