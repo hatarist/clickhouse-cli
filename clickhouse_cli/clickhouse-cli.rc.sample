@@ -1,5 +1,5 @@
 [main]
-# Enable multiline mode by default
+# Disable multiline mode by default
 multiline = False
 
 # Show SQL statements timing

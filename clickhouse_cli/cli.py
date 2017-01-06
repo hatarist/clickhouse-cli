@@ -207,7 +207,7 @@ class CLI:
         elif query.startswith('\c '):
             query = 'USE ' + query[3:]
         elif query.startswith('\ps'):
-            query = 'SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes'
+            query = "SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
         elif query.startswith('\kill '):
             self.client.kill_query(query[6:])
             return

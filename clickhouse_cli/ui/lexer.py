@@ -38,10 +38,10 @@ class CHLexer(RegexLexer):
             (words(DATATYPES, suffix=r'\b'), Keyword.Type),
 
             (words(FORMATS), Name.Label),
-            (words(KEYWORDS, prefix=r'(?i)', suffix=r'\b'), Keyword),
             (words(AGGREGATION_FUNCTIONS, suffix=r'(\s*)(\()'), bygroups(Name.Function, Text, Punctuation)),
             (words(CASE_INSENSITIVE_FUNCTIONS, prefix=r'(?i)', suffix=r'\b'), Name.Function),
             (words(FUNCTIONS, suffix=r'(\s*)(\()'), bygroups(Name.Function, Text, Punctuation)),
+            (words(KEYWORDS, prefix=r'(?i)', suffix=r'\b'), Keyword),
             (r'^\\(\?|\w+)', Text),
 
             (r'(?i)[a-z_]\w*', Text),

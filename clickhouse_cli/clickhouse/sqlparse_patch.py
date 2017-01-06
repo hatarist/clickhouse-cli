@@ -24,6 +24,7 @@ KEYWORDS = {
     'DETACH': tokens.Keyword.DDL,
     'DISTINCT': tokens.Keyword,
     'DROP': tokens.Keyword.DDL,
+    'IF': tokens.Keyword,
     'ELSE': tokens.Keyword,
     'END': tokens.Keyword,
     'EXISTS': tokens.Keyword,

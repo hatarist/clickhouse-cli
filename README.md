@@ -52,7 +52,7 @@ Python 3.4+ is required.
 `~/.clickhouse-cli.rc` is here for your service!
 
     [main]
-    # Enable multiline mode by default
+    # Disable multiline mode by default
     multiline = False
 
     # Show SQL statements timing
