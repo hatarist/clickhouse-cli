@@ -6,12 +6,14 @@ import sqlparse
 import pygments
 
 from pygments.formatters import TerminalTrueColorFormatter
+from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
-from clickhouse_cli.ui.style import CHPygmentsStyle
+from clickhouse_cli.ui.style import CHPygmentsStyle, Echo
 from clickhouse_cli.ui.lexer import CHLexer
 
 logger = logging.getLogger('main')
+echo = Echo()
 
 
 class DBException(Exception):
@@ -119,7 +121,7 @@ class Client(object):
         return self._query(
             'SELECT 1',
             params,
-            fmt='TabSeparated',
+            fmt='Null',
             stream=False,
         )
 
@@ -127,12 +129,17 @@ class Client(object):
         return self._query(
             'SELECT 1',
             {'replace_running_query': 1, 'query_id': query_id},
-            fmt='TabSeparated',
+            fmt='Null',
             stream=False,
         )
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
+        t_query = [
+            t.value.upper() if t.ttype == Keyword else t.value
+            for t in sqlparse.parse(query)[0]
+            if t.ttype not in (Whitespace, Newline)
+        ]
 
         if kwargs.pop('show_formatted', False) and verbose:
             # Highlight & reformat the SQL query
@@ -184,6 +191,7 @@ class Client(object):
 
             return Response(query, fmt, response='', message='Set {0} to {1}.'.format(key, value))
 
+        # Set response format
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
@@ -196,4 +204,31 @@ class Client(object):
             params['query_id'] = query_id
 
         params.update(self.settings)
-        return self._query(query, params, fmt=fmt, stream=stream, **kwargs)
+
+        # Detect INTO OUTFILE at the end of the query
+        try:
+            last_tokens = t_query[-5:]
+            into_pos = last_tokens.index('INTO')
+            has_outfile = into_pos >= 0 and last_tokens.index('OUTFILE') == into_pos + 1
+
+            if has_outfile:
+                path = last_tokens[into_pos + 2].strip("'")
+                # Remove `INTO OUTFILE '/path/to/file.out'`
+                last_tokens.pop(into_pos)
+                last_tokens.pop(into_pos)
+                last_tokens.pop(into_pos)
+                query = ' '.join(t_query[:-5] + last_tokens)
+        except ValueError:
+            has_outfile = False
+
+        response = self._query(query, params, fmt=fmt, stream=stream, **kwargs)
+
+        if has_outfile:
+            try:
+                with open(path, 'wb') as f:
+                    if f:
+                        f.write(response.data.encode())
+            except Exception as e:
+                echo.warning("Caught an exception when writing to file: {0}".format(e))
+
+        return response
