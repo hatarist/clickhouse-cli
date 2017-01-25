@@ -135,11 +135,6 @@ class Client(object):
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
-        t_query = [
-            t.value.upper() if t.ttype == Keyword else t.value
-            for t in sqlparse.parse(query)[0]
-            if t.ttype not in (Whitespace, Newline)
-        ]
 
         if kwargs.pop('show_formatted', False) and verbose:
             # Highlight & reformat the SQL query
@@ -206,6 +201,12 @@ class Client(object):
         params.update(self.settings)
 
         # Detect INTO OUTFILE at the end of the query
+        t_query = [
+            t.value.upper() if t.ttype == Keyword else t.value
+            for t in sqlparse.parse(query)[0]
+            if t.ttype not in (Whitespace, Newline)
+        ]
+
         try:
             last_tokens = t_query[-5:]
             into_pos = last_tokens.index('INTO')
