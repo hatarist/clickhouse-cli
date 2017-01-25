@@ -13,9 +13,9 @@ But, though, it has:
   - Multiquery mode by default
   - Allows you to paste multiline queries by default
   - Session emulation: `SET` is stored and processed locally
-  - Query termination by Ctrl+C (using `replace_running_query`)
-
-  - `\ps` (a shorter version of `SHOW PROCESSLIST`) and `\kill <query-id>` (that aborts the given query)
+  - Query termination on Ctrl+C (using `replace_running_query`)
+  - Pager support (`less`) for the output data
+  - Custom, PostgreSQL-like commands like `\d+ table_name` or `\ps`. See `\?`
 
 
 ## Install
@@ -69,6 +69,9 @@ Python 3.4+ is required.
 
     # Syntax highlight certain output in the interactive mode:
     highlight_output = True
+
+    # Show the output via pager (if defined)
+    pager = True
 
     [settings]
     # You can place the server-side settings here!
