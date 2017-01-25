@@ -56,6 +56,7 @@ def get_continuation_tokens(cli, width):
     return [(Token.Prompt, '  ] ')]
 
 
+@KeyBinder.registry.add_binding(Keys.ControlC, filter=HasFocus(DEFAULT_BUFFER))
 def reset_buffer(event):
     buffer = event.current_buffer
     if buffer.complete_state:
@@ -64,6 +65,7 @@ def reset_buffer(event):
         buffer.reset()
 
 
+@KeyBinder.registry.add_binding(Keys.ControlC, filter=HasFocus(SEARCH_BUFFER))
 def reset_search_buffer(event):
     if event.current_buffer.document.text:
         event.current_buffer.reset()
@@ -71,13 +73,3 @@ def reset_search_buffer(event):
         event.cli.push_focus(DEFAULT_BUFFER)
 
 
-KeyBinder.registry.add_binding(
-    Keys.ControlC,
-    filter=HasFocus(DEFAULT_BUFFER)
-)(reset_buffer)
-
-
-KeyBinder.registry.add_binding(
-    Keys.ControlC,
-    filter=HasFocus(SEARCH_BUFFER)
-)(reset_search_buffer)
