@@ -247,15 +247,11 @@ class CLI:
 
         self.echo.print()
 
-        if self.config.getboolean('main', 'pager'):
-            print_func = self.echo.pager
-        else:
-            print_func = print
-
         if stream:
-            print_func('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
+            print('\n'.join(response.data.decode('utf-8', 'ignore')), end='')
         else:
             if response.data != '':
+                print_func = self.echo.pager if self.config.getboolean('main', 'pager') else print
                 if verbose and self.highlight_output and response.format in PRETTY_FORMATS:
                     print_func(pygments.highlight(
                         response.data,
@@ -263,8 +259,7 @@ class CLI:
                         TerminalTrueColorFormatter(style=CHPygmentsStyle)
                     ))
                 else:
-                    print_func(response.data, end='')
-                    self.echo.print()
+                    print_func(response.data)
 
         if response.message != '':
             self.echo.print(response.message)

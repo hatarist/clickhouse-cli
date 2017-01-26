@@ -90,5 +90,5 @@ class Echo(object):
         if self.verbose:
             return print(*args, **kwargs)
 
-    def pager(self, text):
+    def pager(self, text, end=None):
         return echo_via_pager(text)
