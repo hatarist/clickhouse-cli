@@ -222,7 +222,10 @@ class Client(object):
         except ValueError:
             has_outfile = False
 
-        response = self._query(query, params, fmt=fmt, stream=stream, **kwargs)
+        if data is not None:
+            data = ''.join(data)
+
+        response = self._query(query, params, fmt=fmt, stream=stream, data=data, **kwargs)
 
         if has_outfile:
             try:
