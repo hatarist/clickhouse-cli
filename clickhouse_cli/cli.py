@@ -1,3 +1,5 @@
+import http.client
+
 from uuid import uuid4
 from urllib.parse import parse_qs
 
@@ -13,6 +15,7 @@ from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
+from clickhouse_cli.helpers import parse_headers_stream
 from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
@@ -23,6 +26,9 @@ sqlparse.keywords.SQL_REGEX = CHLexer.tokens
 sqlparse.keywords.KEYWORDS = KEYWORDS
 sqlparse.keywords.KEYWORDS_COMMON = {}
 sqlparse.keywords.KEYWORDS_ORACLE = {}
+
+# monkey-patch http.client
+http.client.parse_headers = parse_headers_stream
 
 
 def show_version():
