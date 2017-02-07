@@ -65,7 +65,7 @@ class Response(object):
 
             if stream:
                 self.data = response.iter_lines()
-                self.rows = -1
+                self.rows = None
                 return
 
             self.data = response.text
@@ -230,7 +230,14 @@ class Client(object):
         if has_outfile:
             try:
                 with open(path, 'wb') as f:
-                    if f:
+                    if not f:
+                        return response
+
+                    if stream:
+                        for line in response.data:
+                            f.write(line)
+                            f.write(b'\n')
+                    else:
                         f.write(response.data.encode())
             except Exception as e:
                 echo.warning("Caught an exception when writing to file: {0}".format(e))

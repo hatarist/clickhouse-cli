@@ -5,10 +5,10 @@ multiline = False
 # Show SQL statements timing
 timing = True
 
-# Preferred output format for the interactive mode
+# Preferred data format for the interactive mode
 format = PrettyCompactMonoBlock
 
-# Preferred output format for the non-interactive mode (file/stdin)
+# Preferred data format for the non-interactive mode (file/stdin)
 format_stdin = TabSeparated
 
 # Show the reformatted query after its execution

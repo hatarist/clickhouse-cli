@@ -39,8 +39,8 @@ Python 3.4+ is required.
       -P, --password           Password
       -d, --database TEXT      Database
       -s, --settings TEXT      Query string to be appended to every query
-      -f, --format TEXT        Output format for the interactive mode
-      -F, --format-stdin TEXT  Output format for stdin/file queries
+      -f, --format TEXT        Data format for the interactive mode
+      -F, --format-stdin TEXT  Data format for stdin/file queries
       -m, --multiline          Enable multiline shell
       --stacktrace             Print stacktraces received from the server.
       --version                Show the version and exit.
@@ -157,6 +157,21 @@ Python 3.4+ is required.
     1,2,3
     4,5,6
 
+### Inserting the data from file
+
+    $ clickhouse-cli -q 'CREATE TABLE test (date Date, s String, i UInt64) ENGINE = TinyLog'
+
+    $ cat data.csv
+    2017-01-01,hello,1
+    2017-02-02,world,2                                                                                                                                                                               
+
+    $ clickhouse-cli -q 'INSERT INTO test (date, s, i)' -F CSV data.csv
+
+    Ok. Elapsed: 0.037 sec.
+    
+    $ clickhouse-cli -q 'SELECT * FROM test'
+    2017-01-01	hello	1
+    2017-02-02	world	2
 
 ### Custom settings
 
