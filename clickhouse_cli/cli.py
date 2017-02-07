@@ -59,7 +59,8 @@ class CLI:
     def connect(self):
         self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
         self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
-        print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
+
+        self.echo.print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
 
         try:
             response = self.client.query('SELECT version();', fmt='TabSeparated', timeout=10)
@@ -113,27 +114,27 @@ class CLI:
     def run(self, query=None, data=None):
         self.load_config()
 
-        if data is not None:
+        if data is not None or query is not None:
             self.format = self.format_stdin
+            self.echo.verbose = False
 
-            # Run in a non-interactive mode
-            if query is None:
-                # Run stdin/file as SQL query
-                self.echo.verbose = False
-                return self.handle_input('\n'.join(data), verbose=False)
+        if self.echo.verbose:
+            show_version()
 
-        if query is not None:
-            self.format = self.format_stdin
-
-            if data is None:
-                self.echo.verbose = False
-                return self.handle_query(query, stream=True)
-            else:
-                return self.handle_query(query, data=data, stream=True)
-
-        show_version()
         if not self.connect():
             return
+
+        if data is not None and query is None:
+            # cat stuff.sql | clickhouse-cli
+            return self.handle_input('\n'.join(data), verbose=False)
+
+        if data is None and query is not None:
+            # clickhouse-cli -q 'SELECT 1'
+            return self.handle_query(query, stream=True)
+
+        if data is not None and query is not None:
+            # cat stuff.csv | clickhouse-cli -q 'INSERT INTO stuff'
+            return self.handle_query(query, data=data, stream=True)
 
         layout = create_prompt_layout(
             lexer=PygmentsLexer(CHLexer),

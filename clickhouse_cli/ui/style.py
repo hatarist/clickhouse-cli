@@ -84,7 +84,7 @@ class Echo(object):
         self._echo(text, fg='yellow', *args, **kwargs)
 
     def error(self, text, *args, **kwargs):
-        self._echo(text, fg='red', *args, **kwargs)
+        secho(text, fg='red', *args, **kwargs)
 
     def print(self, *args, **kwargs):
         if self.verbose:
