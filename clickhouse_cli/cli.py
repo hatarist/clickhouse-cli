@@ -53,13 +53,12 @@ class CLI:
         self.server_version = None
 
         self.query_ids = []
-
+        self.client = None
         self.echo = Echo(verbose=True)
 
-        self.url = 'http://{host}:{port}/'.format(host=host, port=port)
-        self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
-
     def connect(self):
+        self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
+        self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
         print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
 
         try:
@@ -99,11 +98,17 @@ class CLI:
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
 
+        self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
+        self.port = self.port or self.config.get('defaults', 'port') or 8123
+        self.user = self.user or self.config.get('defaults', 'user') or 'default'
+        self.database = self.database or self.config.get('defaults', 'db') or 'default'
+
         config_settings = dict(self.config.items('settings'))
         arg_settings = self.settings
         config_settings.update(arg_settings)
         self.settings = config_settings
-        self.client.settings = self.settings
+        if self.client:
+            self.client.settings = self.settings
 
     def run(self, query=None, data=None):
         self.load_config()
@@ -290,11 +295,11 @@ class CLI:
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
 ))
-@click.option('--host', '-h', default='localhost', help="Server host")
-@click.option('--port', '-p', default='8123', type=click.INT, help="Server HTTP port")
-@click.option('--user', '-u', default='default', help="User")
+@click.option('--host', '-h', help="Server host")
+@click.option('--port', '-p', type=click.INT, help="Server HTTP port")
+@click.option('--user', '-u', help="User")
 @click.option('--password', '-P', is_flag=True, help="Password")
-@click.option('--database', '-d', default='default', help="Database")
+@click.option('--database', '-d', help="Database")
 @click.option('--settings', '-s', help="Query string to be sent with every query")
 @click.option('--query', '-q', help="Query to execute")
 @click.option('--format', '-f', help="Data format for the interactive mode")

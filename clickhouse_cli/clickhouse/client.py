@@ -88,7 +88,7 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user='default', password=None, database='default', settings=None, stacktrace=False):
+    def __init__(self, url, user, password, database, settings=None, stacktrace=False):
         self.url = url
         self.user = user
         self.password = password or ''
