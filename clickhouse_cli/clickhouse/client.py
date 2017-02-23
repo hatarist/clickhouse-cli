@@ -190,11 +190,12 @@ class Client(object):
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
-            elif query.endswith('\G') or query.endswith('\g'):
-                query = query[:-2] + ' FORMAT Vertical'
             elif query_split[-2].upper() != 'FORMAT':
                 if query_split[0].upper() != 'INSERT' or data is not None:
-                    query = query + ' FORMAT {fmt}'.format(fmt=fmt)
+                    if query.endswith('\G') or query.endswith('\g'):
+                        query = query[:-2] + ' FORMAT Vertical'
+                    else:
+                        query = query + ' FORMAT {fmt}'.format(fmt=fmt)
 
         params = {'database': self.database, 'stacktrace': int(self.stacktrace)}
         if query_id:
