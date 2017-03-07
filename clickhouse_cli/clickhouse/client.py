@@ -103,7 +103,7 @@ class Client(object):
         response = None
         try:
             response = requests.post(
-                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, **kwargs
+                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, headers={'Accept-Encoding': 'identity'}, **kwargs
             )
         except requests.exceptions.ConnectTimeout:
             raise TimeoutError

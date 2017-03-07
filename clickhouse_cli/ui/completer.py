@@ -128,7 +128,7 @@ class CHCompleter(Completer):
                 # SELECT * FROM <table>
                 # INSERT INTO <table>
                 return self.get_completion(word, self.get_tables())
-            elif first_keyword in ('SHOW', 'DROP', 'ALTER'):
+            elif first_keyword in ('SHOW', 'DROP', 'ALTER', 'RENAME'):
                 if last_keyword == 'TABLE':  # SHOW CREATE TABLE <table>, DROP TABLE <table>
                     return self.get_completion(word, self.get_tables())
                 elif last_keyword == 'DATABASE':  # DROP DATABASE <database>
