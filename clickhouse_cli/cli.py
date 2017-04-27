@@ -126,7 +126,7 @@ class CLI:
 
         if data is not None and query is None:
             # cat stuff.sql | clickhouse-cli
-            return self.handle_input('\n'.join(data), verbose=False)
+            return self.handle_input(data.read(), verbose=False)
 
         if data is None and query is not None:
             # clickhouse-cli -q 'SELECT 1'
@@ -308,7 +308,7 @@ class CLI:
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
-@click.argument('sqlfile', nargs=1, default=False, type=click.File('r'))
+@click.argument('sqlfile', nargs=1, default=False, type=click.File('rb'))
 def run_cli(host, port, user, password, database, settings, query, format, format_stdin, multiline, stacktrace, version, sqlfile):
     """
     A third-party client for the ClickHouse DBMS.
@@ -322,13 +322,13 @@ def run_cli(host, port, user, password, database, settings, query, format, forma
     sql_input = None
 
     # Read from STDIN if non-interactive mode
-    stdin = click.get_text_stream('stdin')
+    stdin = click.get_binary_stream('stdin')
     if not stdin.isatty():
-        sql_input = stdin.readlines()
+        sql_input = stdin
 
     # Read the given file
     if sqlfile.name is not False:
-        sql_input = sqlfile.readlines()
+        sql_input = sqlfile
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace)
