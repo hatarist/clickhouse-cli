@@ -23,7 +23,7 @@ KEYWORDS = {
     'CREATE': tokens.Keyword.DDL,
     'DATABASE': tokens.Keyword,
     'DATABASES': tokens.Keyword,
-    'DEFAULT': tokens.Keyword,
+    # 'DEFAULT': tokens.Keyword,
     'DELETE': tokens.Keyword.DML,
     'DESC': tokens.Keyword,
     'DESCRIBE': tokens.Keyword.DDL,

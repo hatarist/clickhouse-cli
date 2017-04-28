@@ -158,12 +158,12 @@ class CLI:
 
         eventloop = create_eventloop()
 
-        cli = CommandLineInterface(application=application, eventloop=eventloop)
-
+        self.cli = CommandLineInterface(application=application, eventloop=eventloop)
+        self.cli.application.buffer.completer.get_metadata()
         try:
             while True:
                 try:
-                    cli_input = cli.run(reset_current_buffer=True)
+                    cli_input = self.cli.run(reset_current_buffer=True)
                     self.handle_input(cli_input.text)
                 except KeyboardInterrupt:
                     # Attempt to terminate queries
@@ -183,6 +183,9 @@ class CLI:
             query_id = str(uuid4())
             self.query_ids.append(query_id)
             self.handle_query(query, verbose=verbose, query_id=query_id)
+
+        # Refresh metadata after running through the input
+        self.cli.application.buffer.completer.get_metadata()
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
         if query.rstrip(';') == '':
