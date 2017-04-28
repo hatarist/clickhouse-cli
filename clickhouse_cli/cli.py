@@ -102,6 +102,7 @@ class CLI:
         self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
         self.port = self.port or self.config.get('defaults', 'port') or 8123
         self.user = self.user or self.config.get('defaults', 'user') or 'default'
+        self.password = self.password or self.config.get('defaults', 'password') or ''
         self.database = self.database or self.config.get('defaults', 'db') or 'default'
 
         config_settings = dict(self.config.items('settings'))
@@ -316,7 +317,7 @@ def run_cli(host, port, user, password, database, settings, query, format, forma
     if version:
         return show_version()
 
-    if user and password:
+    if password:
         password = click.prompt("Password", hide_input=True, show_default=False, type=str)
 
     sql_input = None

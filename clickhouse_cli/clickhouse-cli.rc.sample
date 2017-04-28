@@ -1,10 +1,13 @@
 [defaults]
-# Default connection options that will be used if the relevant argument is omitted
+# Default connection options that will be used if the relevant argument was omitted
 
 host = 127.0.0.1
 port = 8123
-user = default
 db = default
+user = default
+# It's not secure to store the password here in plain text.
+password = 
+
 
 [main]
 # Disable multiline mode by default
