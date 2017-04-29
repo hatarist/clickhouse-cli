@@ -29,7 +29,7 @@ show_formatted_query = True
 highlight_output = True
 
 # Show the output via pager (if defined)
-pager = True
+pager = False
 
 
 [settings]
