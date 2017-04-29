@@ -51,6 +51,18 @@ Python 3.4+ is required.
 
 `~/.clickhouse-cli.rc` is here for your service!
 
+    [defaults]
+    # Default connection options that will be used if the relevant argument was omitted.
+
+    host = 127.0.0.1
+    port = 8123
+    db = default
+    user = default
+    password = 
+
+    # It's not secure to store the password here in plain text.
+
+
     [main]
     # Disable multiline mode by default
     multiline = False
@@ -58,10 +70,10 @@ Python 3.4+ is required.
     # Show SQL statements timing
     timing = True
 
-    # Preferred output format for the interactive mode
+    # Preferred data format for the interactive mode
     format = PrettyCompactMonoBlock
 
-    # Preferred output format for the non-interactive mode (file/stdin)
+    # Preferred data format for the non-interactive mode (file/stdin)
     format_stdin = TabSeparated
 
     # Show the reformatted query after its execution
@@ -71,10 +83,12 @@ Python 3.4+ is required.
     highlight_output = True
 
     # Show the output via pager (if defined)
-    pager = True
+    pager = False
 
-    [settings]
+
+    [settings]  
     # You can place the server-side settings here!
+
     # max_memory_usage = 20000000000
 
 

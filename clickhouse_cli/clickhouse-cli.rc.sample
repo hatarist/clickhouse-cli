@@ -1,12 +1,13 @@
 [defaults]
-# Default connection options that will be used if the relevant argument was omitted
+# Default connection options that will be used if the relevant argument was omitted.
 
 host = 127.0.0.1
 port = 8123
 db = default
 user = default
-# It's not secure to store the password here in plain text.
 password = 
+
+# It's not secure to store the password here in plain text.
 
 
 [main]
@@ -32,6 +33,7 @@ highlight_output = True
 pager = False
 
 
-[settings]
+[settings]  
 # You can place the server-side settings here!
+
 # max_memory_usage = 20000000000
