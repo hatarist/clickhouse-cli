@@ -56,6 +56,8 @@ class CLI:
         self.client = None
         self.echo = Echo(verbose=True)
 
+        self.metadata = {}
+
     def connect(self):
         self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
         self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
@@ -127,7 +129,7 @@ class CLI:
 
         if data is not None and query is None:
             # cat stuff.sql | clickhouse-cli
-            return self.handle_input(data.read(), verbose=False)
+            return self.handle_input(data.read(), verbose=False, refresh_metadata=False)
 
         if data is None and query is not None:
             # clickhouse-cli -q 'SELECT 1'
@@ -147,6 +149,7 @@ class CLI:
         buffer = CLIBuffer(
             client=self.client,
             multiline=self.multiline,
+            metadata=self.metadata,
         )
 
         application = Application(
@@ -159,7 +162,8 @@ class CLI:
         eventloop = create_eventloop()
 
         self.cli = CommandLineInterface(application=application, eventloop=eventloop)
-        self.cli.application.buffer.completer.get_metadata()
+        self.cli.application.buffer.completer.refresh_metadata()
+
         try:
             while True:
                 try:
@@ -176,7 +180,7 @@ class CLI:
         except EOFError:
             self.echo.success("Bye.")
 
-    def handle_input(self, input_data, verbose=True):
+    def handle_input(self, input_data, verbose=True, refresh_metadata=True):
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
         self.query_ids = []
         for query in sqlparse.split(input_data):
@@ -184,8 +188,8 @@ class CLI:
             self.query_ids.append(query_id)
             self.handle_query(query, verbose=verbose, query_id=query_id)
 
-        # Refresh metadata after running through the input
-        self.cli.application.buffer.completer.get_metadata()
+        if refresh_metadata:
+            self.cli.application.buffer.completer.refresh_metadata()
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
         if query.rstrip(';') == '':
@@ -264,8 +268,10 @@ class CLI:
         self.echo.print()
 
         if stream:
-            for line in response.iter_lines():
+            data = response.iter_lines() if hasattr(response, 'iter_lines') else response.data
+            for line in data:
                 print(line.decode('utf-8', 'ignore'))
+
         else:
             if response.data != '':
                 print_func = self.echo.pager if self.config.getboolean('main', 'pager') else print

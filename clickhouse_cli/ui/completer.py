@@ -24,7 +24,7 @@ from clickhouse_cli.ui.parseutils.helpers import (
 
 class CHCompleter(Completer):
 
-    def __init__(self, client):
+    def __init__(self, client, metadata):
         super(CHCompleter, self).__init__()
         self.client = client
         self.smart_completion = True
@@ -45,14 +45,8 @@ class CHCompleter(Completer):
             self.reserved_words.update(x.split())
         self.name_pattern = re.compile("^[_a-z][_a-z0-9\$]*$")
 
-        self.databases = []
-        self.dbmetadata = {
-            'tables': {},
-            'views': {},
-            'functions': {},
-            'datatypes': DATATYPES
-        }
-        self.all_completions = set(KEYWORDS + FUNCTIONS)
+        self.metadata = metadata
+        self.metadata['all'] = set(KEYWORDS + FUNCTIONS)
 
     def _select(self, query, flatten=True, *args, **kwargs):
         data = self.client.query(query, fmt='TabSeparated').data
@@ -73,14 +67,12 @@ class CHCompleter(Completer):
     def get_single_match(self, word, match):
         return [Completion(match, -len(word))]
 
-    def get_metadata(self):
-        self.databases = self.get_databases()
-        self.dbmetadata = {
-            'tables': self.get_tables_and_columns(),
-            'views': {},
-            'functions': {},
-            'datatypes': DATATYPES
-        }
+    def refresh_metadata(self):
+        self.metadata['databases'] = self.get_databases()
+        self.metadata['tables'] = self.get_tables_and_columns()
+        self.metadata['views'] = {}
+        self.metadata['functions'] = {}
+        self.metadata['datatypes'] = DATATYPES
 
     def get_tables_and_columns(self):
         data = self._select('SELECT database, table, name, type FROM system.columns;', flatten=False)
@@ -137,27 +129,29 @@ class CHCompleter(Completer):
 
     def extend_database_names(self, databases):
         databases = self.escaped_names(databases)
-        self.databases.extend(databases)
+        self.metadata['databases'].extend(databases)
 
     def extend_keywords(self, additional_keywords):
         KEYWORDS.extend(additional_keywords)
-        self.all_completions.update(additional_keywords)
+        self.metadata['all'].update(additional_keywords)
 
     def extend_schemata(self, schemata):
         # FIXME
-        return self.databases
-        # schemata is a list of schema names
-        schemata = self.escaped_names(schemata)
-        metadata = self.dbmetadata['tables']
-        for schema in schemata:
-            metadata[schema] = {}
 
-        # dbmetadata.values() are the 'tables' and 'functions' dicts
-        for metadata in self.dbmetadata.values():
-            for schema in schemata:
-                metadata[schema] = {}
+        # # schemata is a list of schema names
+        # schemata = self.escaped_names(schemata)
+        # metadata = self.metadata['tables']
+        # for schema in schemata:
+        #     metadata[schema] = {}
 
-        self.all_completions.update(schemata)
+        # # dbmetadata.values() are the 'tables' and 'functions' dicts
+        # for metadata in self.metadata.values():
+        #     for schema in schemata:
+        #         metadata[schema] = {}
+
+        # self.metadata['all'].update(schemata)
+
+        return self.metadata['databases']
 
     def extend_casing(self, words):
         """ extend casing data
@@ -179,13 +173,13 @@ class CHCompleter(Completer):
 
         # dbmetadata['tables']['schema_name']['table_name'] should be an
         # OrderedDict {column_name:ColumnMetaData}.
-        metadata = self.dbmetadata[kind]
+        metadata = self.metadata[kind]
         for schema, relname in data:
             try:
                 metadata[schema][relname] = OrderedDict()
             except KeyError:
                 pass
-            self.all_completions.add(relname)
+            self.metadata['all'].add(relname)
 
     def extend_columns(self, column_data, kind):
         """ extend column metadata
@@ -194,13 +188,13 @@ class CHCompleter(Completer):
         :param kind: either 'tables' or 'views'
         :return:
         """
-        metadata = self.dbmetadata[kind]
+        metadata = self.metadata[kind]
         for schema, relname, colname, datatype in column_data:
             (schema, relname, colname) = self.escaped_names(
                 [schema, relname, colname])
             column = ColumnMetadata(name=colname, datatype=datatype, foreignkeys=[])
             metadata[schema][relname][colname] = column
-            self.all_completions.add(colname)
+            self.metadata['all'].add(colname)
 
     def extend_functions(self, func_data):
 
@@ -210,7 +204,7 @@ class CHCompleter(Completer):
 
         # dbmetadata['schema_name']['functions']['function_name'] should return
         # the function metadata namedtuple for the corresponding function
-        metadata = self.dbmetadata['functions']
+        metadata = self.metadata['functions']
 
         for f in func_data:
             schema, func = self.escaped_names([f.schema_name, f.func_name])
@@ -220,7 +214,7 @@ class CHCompleter(Completer):
             else:
                 metadata[schema][func] = [f]
 
-            self.all_completions.add(func)
+            self.metadata['all'].add(func)
 
     def extend_foreignkeys(self, fk_data):
 
@@ -230,7 +224,7 @@ class CHCompleter(Completer):
 
         # These are added as a list of ForeignKey namedtuples to the
         # ColumnMetadata namedtuple for both the child and parent
-        meta = self.dbmetadata['tables']
+        meta = self.metadata['tables']
 
         for fk in fk_data:
             e = self.escaped_names
@@ -248,12 +242,12 @@ class CHCompleter(Completer):
         # dbmetadata['datatypes'][schema_name][type_name] should store type
         # metadata, such as composite type field names. Currently, we're not
         # storing any metadata beyond typename, so just store None
-        meta = self.dbmetadata['datatypes']
+        meta = self.metadata['datatypes']
 
         for t in type_data:
             schema, type_name = self.escaped_names(t)
             meta[schema][type_name] = None
-            self.all_completions.add(type_name)
+            self.metadata['all'].add(type_name)
 
     def extend_query_history(self, text, is_init=False):
         if is_init:
@@ -269,9 +263,12 @@ class CHCompleter(Completer):
     def reset_completions(self):
         self.special_commands = []
         self.search_path = []
-        self.databases = []
-        self.dbmetadata = {'tables': {}, 'views': {}, 'functions': {}, 'datatypes': DATATYPES}
-        self.all_completions = set(KEYWORDS + FUNCTIONS)
+        self.metadata['databases'] = []
+        self.metadata['tables'] = {}
+        self.metadata['views'] = {}
+        self.metadata['functions'] = {}
+        self.metadata['datatypes'] = DATATYPES
+        self.metadata['all'] = set(KEYWORDS + FUNCTIONS)
 
     def find_matches(self, text, collection, mode='fuzzy', meta=None):
         """Find completion matches for the given text.
@@ -396,7 +393,7 @@ class CHCompleter(Completer):
         # If smart_completion is off then match any word that starts with
         # 'word_before_cursor'.
         if not smart_completion:
-            matches = self.find_matches(word_before_cursor, self.all_completions,
+            matches = self.find_matches(word_before_cursor, self.metadata['all'],
                                         mode='strict')
             completions = [m.completion for m in matches]
             return sorted(completions, key=operator.attrgetter('text'))
@@ -635,7 +632,7 @@ class CHCompleter(Completer):
                                  meta='table alias')
 
     def get_database_matches(self, _, word_before_cursor):
-        return self.find_matches(word_before_cursor, self.databases,
+        return self.find_matches(word_before_cursor, self.metadata['databases'],
                                  meta='database')
 
     def get_keyword_matches(self, _, word_before_cursor):
@@ -692,7 +689,7 @@ class CHCompleter(Completer):
         """
         ctes = dict((normalize_ref(t.name), t.columns) for t in local_tbls)
         columns = OrderedDict()
-        meta = self.dbmetadata
+        meta = self.metadata
 
         def addcols(schema, rel, alias, reltype, cols):
             tbl = TableReference(schema, rel, alias, reltype == 'functions')
@@ -732,7 +729,7 @@ class CHCompleter(Completer):
         """ Returns a list of schemas from which to suggest objects
         schema is the schema qualification input by the user (if any)
         """
-        metadata = self.dbmetadata[obj_typ]
+        metadata = self.metadata[obj_typ]
         if schema:
             schema = self.escape_name(schema)
             return [schema] if schema in metadata else []
@@ -753,7 +750,7 @@ class CHCompleter(Completer):
                 function=(obj_type == 'functions')
             )
             for sch in self._get_schemas(obj_type, schema)
-            for obj in self.dbmetadata[obj_type][sch].keys()
+            for obj in self.metadata[obj_type][sch].keys()
         ]
 
     def populate_functions(self, schema, filter_func):
@@ -774,7 +771,7 @@ class CHCompleter(Completer):
                 function=True
             )
             for sch in self._get_schemas('functions', schema)
-            for (func, metas) in self.dbmetadata['functions'][sch].items()
+            for (func, metas) in self.metadata['functions'][sch].items()
             for meta in metas
             if filter_func(meta)
         ]

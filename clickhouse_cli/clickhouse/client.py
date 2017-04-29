@@ -155,7 +155,7 @@ class Client(object):
             return Response(query, fmt)
 
         # Set response format
-        if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) > 3:
+        if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
             elif query_split[-2].upper() != 'FORMAT':
@@ -202,9 +202,8 @@ class Client(object):
                         return response
 
                     if stream:
-                        for line in response.data:
+                        for line in response.iter_lines():
                             f.write(line)
-                            f.write(b'\n')
                     else:
                         f.write(response.data.encode())
             except Exception as e:

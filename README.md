@@ -1,21 +1,18 @@
 # clickhouse-cli
 
 An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex/) DBMS.  
-It works over the HTTP port, so there are limitations:
+It implements some common and awesome things, such as:
 
-  - Doesn't fully support sessions
-  - Doesn't show progress bar and memory usage stats
-
-But, though, it has:
-
-  - Autocompletion (WIP)
-  - Syntax highlighting: queries, output (Pretty*)
-  - Multiquery mode by default
-  - Allows you to paste multiline queries by default
-  - Session emulation: `SET` is stored and processed locally
-  - Query termination on Ctrl+C (using `replace_running_query`)
-  - Pager support (`less`) for the output data
+  - Autocompletion (work in progress)
+  - Syntax highlighting for the queries & data output (Pretty* formats)
+  - Multiquery & multiline modes by default - paste anything as much as you want!
+  - Pager support (`less`) for the data output
   - Custom, PostgreSQL-like commands like `\d+ table_name` or `\ps`. See `\?`
+
+But it works over the HTTP port, so there are some limitations for now:
+
+  - Doesn't fully support sessions. `SET` options are stored locally and are sent with every request.
+  - Doesn't show progress bar and memory usage stats. Yet.
 
 
 ## Install
@@ -159,15 +156,21 @@ Python 3.4+ is required.
 
 ### Reading from file / stdin
 
-    $ echo 'select 1, 2, 3; select 4, 5, 6;' | clickhouse-cli
+    $ echo 'SELECT 1, 2, 3; SELECT 4, 5, 6;' | clickhouse-cli
     1	2	3
+
     4	5	6
+
+    $ cat test.sql
+    SELECT 1, 2, 3;
+    SELECT 4, 5, 6;
 
     $ clickhouse-cli test.sql
     1 2 3
+
     4 5 6
 
-    $ clickhouse-cli -F CSV <<< 'select 1, 2, 3; select 4, 5, 6'
+    $ clickhouse-cli -F CSV <<< 'SELECT 1, 2, 3 UNION ALL SELECT 4, 5, 6'
     1,2,3
     4,5,6
 
@@ -177,7 +180,7 @@ Python 3.4+ is required.
 
     $ cat data.csv
     2017-01-01,hello,1
-    2017-02-02,world,2                                                                                                                                                                               
+    2017-02-02,world,2
 
     $ clickhouse-cli -q 'INSERT INTO test (date, s, i)' -F CSV data.csv
 

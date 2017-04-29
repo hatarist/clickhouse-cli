@@ -17,7 +17,7 @@ KeyBinder = KeyBindingManager.for_prompt()
 
 class CLIBuffer(Buffer):
 
-    def __init__(self, client, multiline, *args, **kwargs):
+    def __init__(self, client, multiline, metadata, *args, **kwargs):
         @Condition
         def is_multiline():
             if not multiline:
@@ -28,7 +28,7 @@ class CLIBuffer(Buffer):
 
         super(CLIBuffer, self).__init__(
             *args,
-            completer=CHCompleter(client),
+            completer=CHCompleter(client, metadata),
             history=FileHistory(filename=os.path.expanduser('~/.clickhouse-cli_history')),
             enable_history_search=True,
             accept_action=AcceptAction.RETURN_DOCUMENT,

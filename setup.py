@@ -16,6 +16,7 @@ setup(
         'clickhouse_cli',
         'clickhouse_cli.clickhouse',
         'clickhouse_cli.ui',
+        'clickhouse_cli.ui.parseutils',
     ],
     install_requires=[
         'click>=6.6',
