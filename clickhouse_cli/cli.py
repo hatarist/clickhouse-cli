@@ -264,7 +264,8 @@ class CLI:
         self.echo.print()
 
         if stream:
-            print('\n'.join((e.decode('utf-8', 'ignore') for e in response.data)), end='')
+            for line in response.iter_lines():
+                print(line.decode('utf-8', 'ignore'))
         else:
             if response.data != '':
                 print_func = self.echo.pager if self.config.getboolean('main', 'pager') else print
