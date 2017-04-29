@@ -76,7 +76,6 @@ KEYWORDS = {
     'RESHARD': tokens.Keyword,
     'RIGHT': tokens.Keyword,
     'SELECT': tokens.Keyword.DML,
-    'SET': tokens.Keyword,
     'SET': tokens.Keyword.DDL,
     'SETTINGS': tokens.Keyword,
     'SHOW': tokens.Keyword.DDL,

@@ -107,8 +107,8 @@ class Client(object):
             # Highlight & reformat the SQL query
             formatted_query = sqlparse.format(
                 query,
-                reindent=True,
-                indent_width=4,
+                reindent_aligned=True,
+                indent_width=2,
                 # keyword_case='upper'  # works poorly in a few cases
             )
 
@@ -121,7 +121,7 @@ class Client(object):
         # TODO: use sqlparse's parser instead
         query_split = query.split()
 
-        if len(query_split) == 0:
+        if not query_split:
             return Response(query, fmt)
 
         # Since sessions aren't supported over HTTP, we have to make some quirks:
@@ -137,24 +137,25 @@ class Client(object):
 
             return Response(query, fmt, message='Changed the current database to {0}.'.format(self.database))
 
-        # SET foo = bar;
-        if query_split[0].upper() == 'SET' and len(query_split) == 4:
-            key, value = query_split[1], query_split[3]
-            old_value = self.settings.get(key)
-            self.settings[key] = value
-            try:
-                self.test_query()
-            except DBException as e:
-                if old_value is not None:
-                    self.settings[key] = old_value
-                else:
-                    del self.settings[key]
-                raise e
+        # SET foo = 100, fizz = 'buzz';
+        if query_split[0].upper() == 'SET':
+            settings_backup = self.settings.copy()
+            for option in ' '.join(query_split[1:]).split(','):
+                key, value = option.split('=')
+                key, value = key.strip(), value.strip().strip("'")
 
-            return Response(query, fmt, response='', message='Set {0} to {1}.'.format(key, value))
+                self.settings[key] = value
+                try:
+                    self.test_query()
+                except DBException as e:
+                    # Roll back all settings, not even keeping the successfully set ones
+                    self.settings = settings_backup
+                    raise e
+
+            return Response(query, fmt)
 
         # Set response format
-        if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
+        if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) > 3:
             if query_split[-2].upper() == 'FORMAT':
                 fmt = query_split[-1]
             elif query_split[-2].upper() != 'FORMAT':
