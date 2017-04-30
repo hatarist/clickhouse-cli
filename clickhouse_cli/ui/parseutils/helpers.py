@@ -99,7 +99,9 @@ class SqlStatement(object):
         self.word_before_cursor = word_before_cursor = last_word(
             text_before_cursor, include='many_punctuations')
 
-        full_text, text_before_cursor, self.local_tables = isolate_query_ctes(full_text, text_before_cursor)
+        full_text, text_before_cursor, self.local_tables = isolate_query_ctes(
+            full_text, text_before_cursor
+        )
 
         self.text_before_cursor_including_last_word = text_before_cursor
 
@@ -154,7 +156,9 @@ class SqlStatement(object):
         return schema
 
     def reduce_to_prev_keyword(self, n_skip=0):
-        prev_keyword, self.text_before_cursor = find_prev_keyword(self.text_before_cursor, n_skip=n_skip)
+        prev_keyword, self.text_before_cursor = find_prev_keyword(
+            self.text_before_cursor, n_skip=n_skip
+        )
         return prev_keyword
 
 
@@ -354,14 +358,21 @@ def suggest_based_on_last_token(token, stmt):
                     View(schema=parent),
                     Function(schema=parent),)
         else:
-            tables = tuple(TableReference(schema=table.schema or 'default', name=table.name, alias=table.alias, is_function=table.is_function) for table in tables)
+            tables = tuple(
+                TableReference(
+                    schema=table.schema or 'default',
+                    name=table.name, alias=table.alias,
+                    is_function=table.is_function) for table in tables
+            )
             return (Column(table_refs=tables, local_tables=stmt.local_tables),
                     Function(schema=None),
                     Keyword(),)
     elif token_v == 'as':
         # Don't suggest anything for aliases
         return ()
-    elif (token_v.endswith('join') and token.is_keyword) or (token_v in ('copy', 'from', 'update', 'into', 'describe', 'truncate')):
+    elif (token_v.endswith('join') and token.is_keyword) or (
+            token_v in (
+            'copy', 'from', 'update', 'into', 'describe', 'truncate')):
 
         schema = stmt.get_identifier_schema()
         tables = extract_tables(stmt.text_before_cursor)
@@ -469,7 +480,8 @@ def suggest_based_on_last_token(token, stmt):
 
 def identifies(id, ref):
     """Returns true if string `id` matches TableReference `ref`"""
-    return id == ref.alias or id == ref.name or (ref.schema and (id == ref.schema + '.' + ref.name))
+    return id == ref.alias or id == ref.name or (
+        ref.schema and (id == ref.schema + '.' + ref.name))
 
 
 def _allow_join_condition(statement):
@@ -508,7 +520,9 @@ def _allow_join(statement):
         return False
 
     last_tok = statement.token_prev(len(statement.tokens))[1]
-    return (last_tok.value.lower().endswith('join') and last_tok.value.lower() not in('cross join', 'natural join'))
+    return (
+        last_tok.value.lower().endswith('join') and last_tok.value.lower() not in(
+            'cross join', 'natural join'))
 
 
 Match = namedtuple('Match', ['completion', 'priority'])
@@ -538,4 +552,5 @@ def generate_alias(tbl):
     all letters preceded by _
     param tbl - unescaped name of the table to alias
     """
-    return ''.join([c for c in tbl if c.isupper()] or [c for c, prev in zip(tbl, '_' + tbl) if prev == '_' and c != '_'])
+    return ''.join([c for c in tbl if c.isupper()] or [
+        c for c, prev in zip(tbl, '_' + tbl) if prev == '_' and c != '_'])

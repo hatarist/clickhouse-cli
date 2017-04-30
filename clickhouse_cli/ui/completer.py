@@ -13,11 +13,12 @@ from clickhouse_cli.ui.parseutils.utils import last_word
 
 from clickhouse_cli.clickhouse.definitions import *
 from clickhouse_cli.ui.parseutils.helpers import (
-    Special, Database, FromClauseItem, Table, View, JoinCondition, Join, Function, Column, Keyword,
-    Datatype, Alias, Path, Schema,
-    keyword_regexs, PrevalenceCounter, SqlStatement, suggest_type, _find_function_body,
-    _statement_from_function, _split_multiple_statements, suggest_based_on_last_token, identifies,
-    _allow_join_condition, _allow_join, Match, _SchemaObject, SchemaObject, _Candidate, Candidate,
+    Special, Database, FromClauseItem, Table, View, JoinCondition, Join,
+    Function, Column, Keyword, Datatype, Alias, Path, Schema,
+    keyword_regexs, PrevalenceCounter, SqlStatement, suggest_type,
+    _find_function_body, statement_from_function, _split_multiple_statements,
+    suggest_based_on_last_token, identifies, _allow_join_condition,
+    _allow_join, Match, _SchemaObject, SchemaObject, _Candidate, Candidate,
     normalize_ref, generate_alias
 )
 
@@ -75,7 +76,8 @@ class CHCompleter(Completer):
         self.metadata['datatypes'] = DATATYPES
 
     def get_tables_and_columns(self):
-        data = self._select('SELECT database, table, name, type FROM system.columns;', flatten=False)
+        data = self._select(
+            'SELECT database, table, name, type FROM system.columns;', flatten=False)
         result = defaultdict(dict)
 
         class Col(object):
@@ -106,13 +108,18 @@ class CHCompleter(Completer):
 
     def get_table_field_names(self, table, database=None):
         if database is None:
-            result = self._select('DESCRIBE TABLE {}'.format(table), flatten=False)
+            result = self._select('DESCRIBE TABLE {}'.format(table),
+                flatten=False
+            )
         else:
-            result = self._select('DESCRIBE TABLE {}.{}'.format(database, table), flatten=False)
+            result = self._select('DESCRIBE TABLE {}.{}'.format(database, table),
+                flatten=False)
         return [field[0] for field in result]
 
     def escape_name(self, name):
-        if name and ((not self.name_pattern.match(name)) or (name.upper() in self.reserved_words) or (name.upper() in FUNCTIONS)):
+        if name and (
+            (not self.name_pattern.match(name)) or (name.upper()
+                in self.reserved_words) or (name.upper() in FUNCTIONS)):
             name = '"%s"' % name
 
         return name
@@ -192,7 +199,9 @@ class CHCompleter(Completer):
         for schema, relname, colname, datatype in column_data:
             (schema, relname, colname) = self.escaped_names(
                 [schema, relname, colname])
-            column = ColumnMetadata(name=colname, datatype=datatype, foreignkeys=[])
+            column = ColumnMetadata(
+                name=colname, datatype=datatype, foreignkeys=[]
+            )
             metadata[schema][relname][colname] = column
             self.metadata['all'].add(colname)
 
@@ -233,7 +242,10 @@ class CHCompleter(Completer):
             childcol, parcol = e([fk.childcolumn, fk.parentcolumn])
             childcolmeta = meta[childschema][childtable][childcol]
             parcolmeta = meta[parentschema][parenttable][parcol]
-            fk = ForeignKey(parentschema, parenttable, parcol, childschema, childtable, childcol)
+            fk = ForeignKey(
+                parentschema, parenttable, parcol,
+                childschema, childtable, childcol
+            )
             childcolmeta.foreignkeys.append((fk))
             parcolmeta.foreignkeys.append((fk))
 
@@ -377,7 +389,14 @@ class CHCompleter(Completer):
                 )
 
                 matches.append(
-                    Match(completion=Completion(item, -text_len, display_meta=display_meta), priority=priority)
+                    Match(
+                        completion=Completion(
+                            item,
+                            -text_len,
+                            display_meta=display_meta
+                        ),
+                        priority=priority
+                    )
                 )
         return matches
 
@@ -417,7 +436,10 @@ class CHCompleter(Completer):
 
     def get_column_matches(self, suggestion, word_before_cursor):
         tables = suggestion.table_refs
-        do_qualify = suggestion.qualifiable and {'always': True, 'never': False, 'if_more_than_one_table': len(tables) > 1}[self.qualify_columns]
+        do_qualify = suggestion.qualifiable and {
+            'always': True,
+            'never': False, 'if_more_than_one_table': len(tables) > 1
+        }[self.qualify_columns]
 
         def qualify(col, tbl):
             return tbl + '.' + self.case(col) if do_qualify else self.case(col)
@@ -600,7 +622,11 @@ class CHCompleter(Completer):
         t_sug = Table(s.schema, s.table_refs, s.local_tables)
         v_sug = View(s.schema, s.table_refs)
         f_sug = Function(s.schema, s.table_refs, filter='for_from_clause')
-        return (self.get_table_matches(t_sug, word_before_cursor, alias) + self.get_view_matches(v_sug, word_before_cursor, alias) + self.get_function_matches(f_sug, word_before_cursor, alias))
+        return (
+            self.get_table_matches(t_sug, word_before_cursor, alias)
+            + self.get_view_matches(v_sug, word_before_cursor, alias)
+            + self.get_function_matches(f_sug, word_before_cursor, alias)
+        )
 
     # Note: tbl is a SchemaObject
     def _make_cand(self, tbl, do_alias, suggestion):
@@ -662,7 +688,12 @@ class CHCompleter(Completer):
         return []
 
     def get_datatype_matches(self, suggestion, word_before_cursor):
-        return self.find_matches(word_before_cursor, DATATYPES, mode='strict', meta='datatype')
+        return self.find_matches(
+            word_before_cursor, 
+            DATATYPES, 
+            mode='strict', 
+            meta='datatype'
+        )
 
     suggestion_matchers = {
         FromClauseItem: get_from_clause_item_matches,

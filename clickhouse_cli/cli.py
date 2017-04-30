@@ -17,7 +17,9 @@ from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
 from clickhouse_cli.helpers import parse_headers_stream
 from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
-from clickhouse_cli.ui.prompt import CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
+from clickhouse_cli.ui.prompt import (
+    CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
+)
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.config import read_config
 
@@ -37,7 +39,8 @@ def show_version():
 
 class CLI:
 
-    def __init__(self, host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace):
+    def __init__(self, host, port, user, password, database, 
+                 settings, format, format_stdin, multiline, stacktrace):
         self.config = None
 
         self.host = host
@@ -60,12 +63,25 @@ class CLI:
 
     def connect(self):
         self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
-        self.client = Client(self.url, self.user, self.password, self.database, self.settings, self.stacktrace)
+        self.client = Client(
+            self.url,
+            self.user,
+            self.password,
+            self.database,
+            self.settings,
+            self.stacktrace
+        )
 
-        self.echo.print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
+        self.echo.print("Connecting to {host}:{port}".format(
+            host=self.host, port=self.port)
+        )
 
         try:
-            response = self.client.query('SELECT version();', fmt='TabSeparated', timeout=10)
+            response = self.client.query(
+                'SELECT version();',
+                fmt='TabSeparated',
+                timeout=10
+            )
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return False
@@ -89,7 +105,11 @@ class CLI:
         version = response.data.strip().split('.')
         self.server_version = (int(version[0]), int(version[1]), int(version[2]))
 
-        self.echo.success("Connected to ClickHouse server v{0}.{1}.{2}.\n".format(*self.server_version))
+        self.echo.success(
+            "Connected to ClickHouse server v{0}.{1}.{2}.\n".format(
+                *self.server_version
+            )
+        )
         return True
 
     def load_config(self):
@@ -232,9 +252,15 @@ class CLI:
             query = 'USE ' + query[3:]
         elif query.startswith('\ps'):
             if self.server_version[2] < 54115:
-                query = "SELECT query_id, user, address, elapsed, rows_read, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
+                query = """
+                SELECT query_id, user, address, elapsed, rows_read, memory_usage
+                FROM system.processes
+                WHERE query_id != '{}'""".format(query_id)
             else:
-                query = "SELECT query_id, user, address, elapsed, read_rows, memory_usage FROM system.processes WHERE query_id != '{}'".format(query_id)
+                query = """
+                SELECT query_id, user, address, elapsed, read_rows, memory_usage 
+                FROM system.processes 
+                WHERE query_id != '{}'""".format(query_id)
         elif query.startswith('\kill '):
             self.client.kill_query(query[6:])
             return
@@ -320,7 +346,8 @@ class CLI:
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('sqlfile', nargs=1, default=False, type=click.File('rb'))
-def run_cli(host, port, user, password, database, settings, query, format, format_stdin, multiline, stacktrace, version, sqlfile):
+def run_cli(host, port, user, password, database, settings, query, format,
+            format_stdin, multiline, stacktrace, version, sqlfile):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -342,7 +369,10 @@ def run_cli(host, port, user, password, database, settings, query, format, forma
         sql_input = sqlfile
 
     # TODO: Rename the CLI's instance into something more feasible
-    cli = CLI(host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace)
+    cli = CLI(
+        host, port, user, password, database, settings, 
+        format, format_stdin, multiline, stacktrace
+    )
     cli.run(query=query, data=sql_input)
 
 
