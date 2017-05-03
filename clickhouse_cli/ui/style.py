@@ -1,7 +1,10 @@
 from click import secho, echo_via_pager
 
 from pygments.style import Style
-from pygments.token import Keyword, Name, Comment, String, Error, Number, Operator, Generic, Token, Whitespace
+from pygments.token import (
+    Keyword, Name, Comment, String, Error,
+    Number, Operator, Generic, Token, Whitespace
+)
 # from prompt_toolkit.token import Token as PTToken
 from prompt_toolkit.styles import style_from_pygments
 

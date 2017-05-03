@@ -29,7 +29,9 @@ class CLIBuffer(Buffer):
         super(CLIBuffer, self).__init__(
             *args,
             completer=CHCompleter(client, metadata),
-            history=FileHistory(filename=os.path.expanduser('~/.clickhouse-cli_history')),
+            history=FileHistory(
+                filename=os.path.expanduser('~/.clickhouse-cli_history')
+            ),
             enable_history_search=True,
             accept_action=AcceptAction.RETURN_DOCUMENT,
             is_multiline=is_multiline,

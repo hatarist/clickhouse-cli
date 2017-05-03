@@ -7,7 +7,8 @@ TableMetadata = namedtuple('TableMetadata', 'name columns')
 
 class FunctionMetadata(object):
 
-    def __init__(self, schema_name, func_name, arg_names, arg_types, arg_modes, return_type, is_aggregate, is_window, is_set_returning):
+    def __init__(self, schema_name, func_name, arg_names, arg_types,
+                 arg_modes, return_type, is_aggregate, is_window, is_set_returning):
         """Class for describing a postgresql function"""
 
         self.schema_name = schema_name

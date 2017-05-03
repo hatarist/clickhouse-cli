@@ -8,7 +8,9 @@ from pygments.formatters import TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
-from clickhouse_cli.clickhouse.exceptions import DBException, ConnectionError, TimeoutError
+from clickhouse_cli.clickhouse.exceptions import (
+    DBException, ConnectionError, TimeoutError
+)
 from clickhouse_cli.ui.style import CHPygmentsStyle, Echo
 from clickhouse_cli.ui.lexer import CHLexer
 
@@ -55,7 +57,8 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user, password, database, settings=None, stacktrace=False):
+    def __init__(self, url, user, password, database,
+                 settings=None, stacktrace=False):
         self.url = url
         self.user = user
         self.password = password or ''
@@ -70,7 +73,13 @@ class Client(object):
         response = None
         try:
             response = requests.post(
-                self.url, data=data, params=params, auth=(self.user, self.password), stream=stream, headers={'Accept-Encoding': 'identity'}, **kwargs
+                self.url,
+                data=data,
+                params=params,
+                auth=(self.user, self.password),
+                stream=stream,
+                headers={'Accept-Encoding': 'identity'},
+                **kwargs
             )
         except requests.exceptions.ConnectTimeout:
             raise TimeoutError
@@ -100,7 +109,8 @@ class Client(object):
             stream=False,
         )
 
-    def query(self, query, data=None, fmt='PrettyCompactMonoBlock', stream=False, verbose=False, query_id=None, **kwargs):
+    def query(self, query, data=None, fmt='PrettyCompactMonoBlock',
+              stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
 
         if kwargs.pop('show_formatted', False) and verbose:
@@ -135,7 +145,13 @@ class Client(object):
                 self.database = old_database
                 raise e
 
-            return Response(query, fmt, message='Changed the current database to {0}.'.format(self.database))
+            return Response(
+                query,
+                fmt,
+                message='Changed the current database to {0}.'.format(
+                    self.database
+                )
+            )
 
         # SET foo = 100, fizz = 'buzz';
         if query_split[0].upper() == 'SET':
