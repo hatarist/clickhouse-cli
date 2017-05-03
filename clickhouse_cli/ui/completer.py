@@ -13,13 +13,9 @@ from clickhouse_cli.ui.parseutils.utils import last_word
 
 from clickhouse_cli.clickhouse.definitions import *
 from clickhouse_cli.ui.parseutils.helpers import (
-    Special, Database, FromClauseItem, Table, View, JoinCondition, Join,
-    Function, Column, Keyword, Datatype, Alias, Path, Schema,
-    keyword_regexs, PrevalenceCounter, SqlStatement, suggest_type,
-    _find_function_body, statement_from_function, _split_multiple_statements,
-    suggest_based_on_last_token, identifies, _allow_join_condition,
-    _allow_join, Match, _SchemaObject, SchemaObject, _Candidate, Candidate,
-    normalize_ref, generate_alias
+    Special, Database, FromClauseItem, Table, View, JoinCondition, Join, Function, Column, Keyword,
+    Datatype, Alias, Path, Schema, PrevalenceCounter, Match, SchemaObject, _Candidate, Candidate,
+    normalize_ref, generate_alias, suggest_type
 )
 
 
@@ -108,9 +104,7 @@ class CHCompleter(Completer):
 
     def get_table_field_names(self, table, database=None):
         if database is None:
-            result = self._select('DESCRIBE TABLE {}'.format(table),
-                flatten=False
-            )
+            result = self._select('DESCRIBE TABLE {}'.format(table), flatten=False)
         else:
             result = self._select('DESCRIBE TABLE {}.{}'.format(database, table),
                 flatten=False)
@@ -118,8 +112,9 @@ class CHCompleter(Completer):
 
     def escape_name(self, name):
         if name and (
-            (not self.name_pattern.match(name)) or (name.upper()
-                in self.reserved_words) or (name.upper() in FUNCTIONS)):
+                not self.name_pattern.match(name) or
+                name.upper() in self.reserved_words or
+                name.upper() in FUNCTIONS):
             name = '"%s"' % name
 
         return name
@@ -623,9 +618,9 @@ class CHCompleter(Completer):
         v_sug = View(s.schema, s.table_refs)
         f_sug = Function(s.schema, s.table_refs, filter='for_from_clause')
         return (
-            self.get_table_matches(t_sug, word_before_cursor, alias)
-            + self.get_view_matches(v_sug, word_before_cursor, alias)
-            + self.get_function_matches(f_sug, word_before_cursor, alias)
+            self.get_table_matches(t_sug, word_before_cursor, alias) +
+            self.get_view_matches(v_sug, word_before_cursor, alias) +
+            self.get_function_matches(f_sug, word_before_cursor, alias)
         )
 
     # Note: tbl is a SchemaObject
@@ -689,9 +684,9 @@ class CHCompleter(Completer):
 
     def get_datatype_matches(self, suggestion, word_before_cursor):
         return self.find_matches(
-            word_before_cursor, 
-            DATATYPES, 
-            mode='strict', 
+            word_before_cursor,
+            DATATYPES,
+            mode='strict',
             meta='datatype'
         )
 

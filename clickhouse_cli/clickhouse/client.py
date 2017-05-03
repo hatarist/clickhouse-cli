@@ -7,6 +7,7 @@ import pygments
 from pygments.formatters import TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
+from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
 from clickhouse_cli.clickhouse.exceptions import (
     DBException, ConnectionError, TimeoutError
@@ -14,6 +15,8 @@ from clickhouse_cli.clickhouse.exceptions import (
 from clickhouse_cli.ui.style import CHPygmentsStyle, Echo
 from clickhouse_cli.ui.lexer import CHLexer
 
+
+USER_AGENT = "clickhouse-cli/{0}".format(__version__)
 
 logger = logging.getLogger('main')
 echo = Echo()
@@ -78,7 +81,7 @@ class Client(object):
                 params=params,
                 auth=(self.user, self.password),
                 stream=stream,
-                headers={'Accept-Encoding': 'identity'},
+                headers={'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT},
                 **kwargs
             )
         except requests.exceptions.ConnectTimeout:
