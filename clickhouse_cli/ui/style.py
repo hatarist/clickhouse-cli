@@ -70,10 +70,13 @@ CHStyle = style_from_pygments(CHPygmentsStyle)
 
 class Echo(object):
 
-    def __init__(self, verbose=True):
+    def __init__(self, verbose=True, colors=True):
         self.verbose = verbose
+        self.colors = colors
 
     def _echo(self, *args, **kwargs):
+        if not self.colors:
+            kwargs.pop('fg', None)
         if self.verbose:
             return secho(*args, **kwargs)
 

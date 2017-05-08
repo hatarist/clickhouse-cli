@@ -26,6 +26,9 @@ format_stdin = TabSeparated
 # Show the reformatted query after its execution
 show_formatted_query = True
 
+# Syntax highlighting
+highlight = True
+
 # Syntax highlight certain output in the interactive mode:
 highlight_output = True
 

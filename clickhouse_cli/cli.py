@@ -6,7 +6,7 @@ from urllib.parse import parse_qs
 import click
 import pygments
 import sqlparse
-from pygments.formatters import TerminalTrueColorFormatter
+from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 from prompt_toolkit import Application, CommandLineInterface
 from prompt_toolkit.layout.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
@@ -57,7 +57,7 @@ class CLI:
 
         self.query_ids = []
         self.client = None
-        self.echo = Echo(verbose=True)
+        self.echo = Echo(verbose=True, colors=True)
 
         self.metadata = {}
 
@@ -119,6 +119,7 @@ class CLI:
         self.format = self.format or self.config.get('main', 'format')
         self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin')
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
+        self.highlight = self.config.getboolean('main', 'highlight')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
 
         self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
@@ -131,8 +132,8 @@ class CLI:
         arg_settings = self.settings
         config_settings.update(arg_settings)
         self.settings = config_settings
-        if self.client:
-            self.client.settings = self.settings
+
+        self.echo.colors = self.highlight
 
     def run(self, query=None, data=None):
         self.load_config()
@@ -147,6 +148,17 @@ class CLI:
         if not self.connect():
             return
 
+        if self.client:
+            self.client.settings = self.settings
+            self.client.cli_settings = {
+                'multiline': self.multiline,
+                'format': self.format,
+                'format_stdin': self.format_stdin,
+                'show_formatted_query': self.show_formatted_query,
+                'highlight': self.highlight,
+                'highlight_output': self.highlight_output,
+            }
+
         if data is not None and query is None:
             # cat stuff.sql | clickhouse-cli
             return self.handle_input(data.read(), verbose=False, refresh_metadata=False)
@@ -160,7 +172,7 @@ class CLI:
             return self.handle_query(query, data=data, stream=True)
 
         layout = create_prompt_layout(
-            lexer=PygmentsLexer(CHLexer),
+            lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             get_prompt_tokens=get_prompt_tokens,
             get_continuation_tokens=get_continuation_tokens,
             multiline=self.multiline,
@@ -175,7 +187,7 @@ class CLI:
         application = Application(
             layout=layout,
             buffer=buffer,
-            style=CHStyle,
+            style=CHStyle if self.highlight else None,
             key_bindings_registry=KeyBinder.registry,
         )
 
@@ -251,16 +263,10 @@ class CLI:
         elif query.startswith('\c '):
             query = 'USE ' + query[3:]
         elif query.startswith('\ps'):
-            if self.server_version[2] < 54115:
-                query = """
-                SELECT query_id, user, address, elapsed, rows_read, memory_usage
-                FROM system.processes
-                WHERE query_id != '{}'""".format(query_id)
-            else:
-                query = """
-                SELECT query_id, user, address, elapsed, read_rows, memory_usage 
-                FROM system.processes 
-                WHERE query_id != '{}'""".format(query_id)
+            query = (
+                "SELECT query_id, user, address, elapsed, {}, memory_usage "
+                "FROM system.processes WHERE query_id != '{}'"
+            ).format('read_rows' if self.server_version[2] >= 54115 else 'rows_read', query_id)
         elif query.startswith('\kill '):
             self.client.kill_query(query[6:])
             return
@@ -274,7 +280,6 @@ class CLI:
                 data=data,
                 stream=stream,
                 verbose=verbose,
-                show_formatted=self.show_formatted_query,
                 query_id=query_id
             )
         except DBException as e:
@@ -301,11 +306,24 @@ class CLI:
         else:
             if response.data != '':
                 print_func = self.echo.pager if self.config.getboolean('main', 'pager') else print
-                if verbose and self.highlight_output and response.format in PRETTY_FORMATS:
+
+                should_highlight_output = (
+                    verbose and
+                    self.highlight and
+                    self.highlight_output and
+                    response.format in PRETTY_FORMATS
+                )
+
+                formatter = TerminalFormatter()
+
+                if self.highlight:
+                    formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
+
+                if should_highlight_output:
                     print_func(pygments.highlight(
                         response.data,
                         CHPrettyFormatLexer(),
-                        TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                        formatter
                     ))
                 else:
                     print_func(response.data)

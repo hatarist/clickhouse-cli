@@ -4,7 +4,7 @@ import requests
 import sqlparse
 import pygments
 
-from pygments.formatters import TerminalTrueColorFormatter
+from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli import __version__
@@ -67,6 +67,7 @@ class Client(object):
         self.password = password or ''
         self.database = database
         self.settings = settings or {}
+        self.cli_settings = {}
         self.stacktrace = stacktrace
 
     def _query(self, query, extra_params, fmt, stream, data=None, **kwargs):
@@ -115,8 +116,7 @@ class Client(object):
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock',
               stream=False, verbose=False, query_id=None, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
-
-        if kwargs.pop('show_formatted', False) and verbose:
+        if verbose and self.cli_settings.get('show_formatted_query'):
             # Highlight & reformat the SQL query
             formatted_query = sqlparse.format(
                 query,
@@ -125,11 +125,14 @@ class Client(object):
                 # keyword_case='upper'  # works poorly in a few cases
             )
 
-            print('\n' + pygments.highlight(
-                formatted_query,
-                CHLexer(),
-                TerminalTrueColorFormatter(style=CHPygmentsStyle)
-            ))
+            if self.cli_settings.get('highlight'):
+                print('\n' + pygments.highlight(
+                    formatted_query,
+                    CHLexer(),
+                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                ))
+            else:
+                print('\n' + formatted_query)
 
         # TODO: use sqlparse's parser instead
         query_split = query.split()
