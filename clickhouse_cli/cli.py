@@ -39,7 +39,7 @@ def show_version():
 
 class CLI:
 
-    def __init__(self, host, port, user, password, database, 
+    def __init__(self, host, port, user, password, database,
                  settings, format, format_stdin, multiline, stacktrace):
         self.config = None
 
@@ -69,7 +69,10 @@ class CLI:
             self.password,
             self.database,
             self.settings,
-            self.stacktrace
+            self.stacktrace,
+            self.conn_timeout,
+            self.conn_timeout_retry,
+            self.conn_timeout_retry_delay,
         )
 
         self.echo.print("Connecting to {host}:{port}".format(
@@ -77,11 +80,7 @@ class CLI:
         )
 
         try:
-            response = self.client.query(
-                'SELECT version();',
-                fmt='TabSeparated',
-                timeout=10
-            )
+            response = self.client.query('SELECT version();', fmt='TabSeparated')
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return False
@@ -121,6 +120,10 @@ class CLI:
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight = self.config.getboolean('main', 'highlight')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
+
+        self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
+        self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
+        self.conn_timeout_retry_delay = self.config.getfloat('http', 'conn_timeout_retry_delay')
 
         self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
         self.port = self.port or self.config.get('defaults', 'port') or 8123
@@ -220,7 +223,7 @@ class CLI:
             self.query_ids.append(query_id)
             self.handle_query(query, verbose=verbose, query_id=query_id)
 
-        if refresh_metadata:
+        if refresh_metadata and input_data:
             self.cli.application.buffer.completer.refresh_metadata()
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
@@ -282,6 +285,12 @@ class CLI:
                 verbose=verbose,
                 query_id=query_id
             )
+        except TimeoutError:
+            self.echo.error("Error: Connection timeout.")
+            return
+        except ConnectionError:
+            self.echo.error("Error: Failed to connect.")
+            return
         except DBException as e:
             self.echo.error("\nReceived exception from server:")
             self.echo.error(e.error)

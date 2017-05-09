@@ -4,11 +4,12 @@ import requests
 import sqlparse
 import pygments
 
-from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
+from requests.packages.urllib3.util.retry import Retry
+from pygments.formatters import TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli import __version__
-from clickhouse_cli.clickhouse.definitions import FORMATTABLE_QUERIES
+from clickhouse_cli.clickhouse.definitions import READ_QUERIES, FORMATTABLE_QUERIES
 from clickhouse_cli.clickhouse.exceptions import (
     DBException, ConnectionError, TimeoutError
 )
@@ -60,8 +61,8 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user, password, database,
-                 settings=None, stacktrace=False):
+    def __init__(self, url, user, password, database, settings=None, stacktrace=False, timeout=10.0,
+                 timeout_retry=0, timeout_retry_delay=0.0):
         self.url = url
         self.user = user
         self.password = password or ''
@@ -69,20 +70,31 @@ class Client(object):
         self.settings = settings or {}
         self.cli_settings = {}
         self.stacktrace = stacktrace
+        self.timeout = timeout
+        self.session = requests.Session()
 
-    def _query(self, query, extra_params, fmt, stream, data=None, **kwargs):
+        retries = Retry(
+            connect=timeout_retry,
+            # method_whitelist={'GET', 'POST'},  # enabling retries for POST may be a bad idea
+            backoff_factor=timeout_retry_delay
+        )
+        self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
+
+    def _query(self, method, query, extra_params, fmt, stream, data=None, **kwargs):
         params = {'query': query}
         params.update(extra_params)
 
         response = None
         try:
-            response = requests.post(
+            response = self.session.request(
+                method,
                 self.url,
                 data=data,
                 params=params,
                 auth=(self.user, self.password),
                 stream=stream,
                 headers={'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT},
+                timeout=(self.timeout, None),
                 **kwargs
             )
         except requests.exceptions.ConnectTimeout:
@@ -99,6 +111,7 @@ class Client(object):
         params = {'database': self.database}
         params.update(self.settings)
         return self._query(
+            'GET',
             'SELECT 1',
             params,
             fmt='Null',
@@ -107,6 +120,7 @@ class Client(object):
 
     def kill_query(self, query_id):
         return self._query(
+            'GET',
             'SELECT 1',
             {'replace_running_query': 1, 'query_id': query_id},
             fmt='Null',
@@ -215,7 +229,8 @@ class Client(object):
         except ValueError:
             has_outfile = False
 
-        response = self._query(query, params, fmt=fmt, stream=stream, data=data, **kwargs)
+        method = 'GET' if query_split[0].upper() in READ_QUERIES else 'POST'
+        response = self._query(method, query, params, fmt=fmt, stream=stream, data=data, **kwargs)
 
         if has_outfile:
             try:

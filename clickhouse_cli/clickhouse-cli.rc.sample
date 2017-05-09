@@ -9,7 +9,6 @@ password =
 
 # It's not secure to store the password here in plain text.
 
-
 [main]
 # Disable multiline mode by default
 multiline = False
@@ -34,6 +33,17 @@ highlight_output = True
 
 # Show the output via pager (if defined)
 pager = False
+
+[http]
+
+# Timeout for the connection to the ClickHouse HTTP server (in seconds)
+conn_timeout = 10.0
+
+# Amount of retries if the connection was timed out
+conn_timeout_retry = 0
+
+# A dynamic delay between retries (see "urllib3 Retry backoff_factor")
+conn_timeout_retry_delay = 0.5
 
 
 [settings]  

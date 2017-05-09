@@ -47,9 +47,10 @@ class CHCompleter(Completer):
 
     def _select(self, query, flatten=True, *args, **kwargs):
         data = self.client.query(query, fmt='TabSeparated').data
-        return [
-            row if flatten else row.split('\t') for row in data.rstrip('\n').split('\n')
-        ]
+        if data is not None:
+            return [
+                row if flatten else row.split('\t') for row in data.rstrip('\n').split('\n')
+            ]
 
     def get_completion(self, word, keywords, ignore_case=False, suffix=''):
         for keyword in keywords:
@@ -65,11 +66,14 @@ class CHCompleter(Completer):
         return [Completion(match, -len(word))]
 
     def refresh_metadata(self):
-        self.metadata['databases'] = self.get_databases()
-        self.metadata['tables'] = self.get_tables_and_columns()
-        self.metadata['views'] = {}
-        self.metadata['functions'] = {}
-        self.metadata['datatypes'] = DATATYPES
+        try:
+            self.metadata['databases'] = self.get_databases()
+            self.metadata['tables'] = self.get_tables_and_columns()
+            self.metadata['views'] = {}
+            self.metadata['functions'] = {}
+            self.metadata['datatypes'] = DATATYPES
+        except Exception:
+            pass  # We don't want to brag about the broken autocompletion
 
     def get_tables_and_columns(self):
         data = self._select(
