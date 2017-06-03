@@ -139,10 +139,10 @@ class CLI:
 
         self.echo.colors = self.highlight
 
-    def run(self, query=None, data=None, compress=False):
+    def run(self, query, data):
         self.load_config()
 
-        if data is not None or query is not None:
+        if data or query is not None:
             self.format = self.format_stdin
             self.echo.verbose = False
 
@@ -163,29 +163,39 @@ class CLI:
                 'highlight_output': self.highlight_output,
             }
 
-        if data is not None and query is None:
+        if data and query is None:
             # cat stuff.sql | clickhouse-cli
-            return self.handle_input(
-                data.read(),
-                verbose=False,
-                refresh_metadata=False
-            )
+            # clickhouse-cli stuff.sql
+            for subdata in data:
+                self.handle_input(
+                    subdata.read(),
+                    verbose=False,
+                    refresh_metadata=False
+                )
 
-        if data is None and query is not None:
+            return
+
+        if not data and query is not None:
             # clickhouse-cli -q 'SELECT 1'
             return self.handle_query(
                 query,
                 stream=True
             )
 
-        if data is not None and query is not None:
+        if data and query is not None:
             # cat stuff.csv | clickhouse-cli -q 'INSERT INTO stuff'
-            return self.handle_query(
-                query,
-                data=data,
-                stream=True,
-                compress=compress
-            )
+            # clickhouse-cli -q 'INSERT INTO stuff' stuff.csv
+            for subdata in data:
+                compress = 'gzip' if os.path.splitext(subdata.name)[1] == '.gz' else False
+
+                self.handle_query(
+                    query,
+                    data=subdata,
+                    stream=True,
+                    compress=compress
+                )
+
+            return
 
         layout = create_prompt_layout(
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
@@ -407,9 +417,9 @@ class CLI:
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
-@click.argument('sqlfile', nargs=1, default=False, type=click.File('rb'))
+@click.argument('files', nargs=-1, type=click.File('rb'))
 def run_cli(host, port, user, password, database, settings, query, format,
-            format_stdin, multiline, stacktrace, version, sqlfile):
+            format_stdin, multiline, stacktrace, version, files):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -419,27 +429,23 @@ def run_cli(host, port, user, password, database, settings, query, format,
     if password:
         password = click.prompt("Password", hide_input=True, show_default=False, type=str)
 
-    sql_input = None
-    compress = False
+    data_input = ()
 
     # Read from STDIN if non-interactive mode
     stdin = click.get_binary_stream('stdin')
     if not stdin.isatty():
-        sql_input = stdin
+        data_input += (stdin,)
 
     # Read the given file
-    if sqlfile.name is not False:
-        sql_input = sqlfile
-
-        if os.path.splitext(sqlfile.name)[1] == '.gz':
-            compress = 'gzip'
+    if files:
+        data_input += files
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
         host, port, user, password, database, settings,
         format, format_stdin, multiline, stacktrace
     )
-    cli.run(query=query, data=sql_input, compress=compress)
+    cli.run(query, data_input)
 
 
 if __name__ == '__main__':
