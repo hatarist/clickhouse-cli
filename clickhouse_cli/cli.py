@@ -1,4 +1,5 @@
 import http.client
+import os
 
 from uuid import uuid4
 from urllib.parse import parse_qs
@@ -138,7 +139,7 @@ class CLI:
 
         self.echo.colors = self.highlight
 
-    def run(self, query=None, data=None):
+    def run(self, query=None, data=None, compress=False):
         self.load_config()
 
         if data is not None or query is not None:
@@ -164,15 +165,27 @@ class CLI:
 
         if data is not None and query is None:
             # cat stuff.sql | clickhouse-cli
-            return self.handle_input(data.read(), verbose=False, refresh_metadata=False)
+            return self.handle_input(
+                data.read(),
+                verbose=False,
+                refresh_metadata=False
+            )
 
         if data is None and query is not None:
             # clickhouse-cli -q 'SELECT 1'
-            return self.handle_query(query, stream=True)
+            return self.handle_query(
+                query,
+                stream=True
+            )
 
         if data is not None and query is not None:
             # cat stuff.csv | clickhouse-cli -q 'INSERT INTO stuff'
-            return self.handle_query(query, data=data, stream=True)
+            return self.handle_query(
+                query,
+                data=data,
+                stream=True,
+                compress=compress
+            )
 
         layout = create_prompt_layout(
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
@@ -231,7 +244,7 @@ class CLI:
         if refresh_metadata and input_data:
             self.cli.application.buffer.completer.refresh_metadata()
 
-    def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
+    def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None, compress=False, **kwargs):
         if query.rstrip(';') == '':
             return
 
@@ -300,6 +313,7 @@ class CLI:
                 stream=stream,
                 verbose=verbose,
                 query_id=query_id,
+                compress=compress,
             )
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
@@ -406,6 +420,7 @@ def run_cli(host, port, user, password, database, settings, query, format,
         password = click.prompt("Password", hide_input=True, show_default=False, type=str)
 
     sql_input = None
+    compress = False
 
     # Read from STDIN if non-interactive mode
     stdin = click.get_binary_stream('stdin')
@@ -416,12 +431,15 @@ def run_cli(host, port, user, password, database, settings, query, format,
     if sqlfile.name is not False:
         sql_input = sqlfile
 
+        if os.path.splitext(sqlfile.name)[1] == '.gz':
+            compress = 'gzip'
+
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
-        host, port, user, password, database, settings, 
+        host, port, user, password, database, settings,
         format, format_stdin, multiline, stacktrace
     )
-    cli.run(query=query, data=sql_input)
+    cli.run(query=query, data=sql_input, compress=compress)
 
 
 if __name__ == '__main__':

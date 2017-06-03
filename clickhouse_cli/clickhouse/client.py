@@ -80,9 +80,13 @@ class Client(object):
         )
         self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
 
-    def _query(self, method, query, extra_params, fmt, stream, data=None, **kwargs):
+    def _query(self, method, query, extra_params, fmt, stream, data=None, compress=False, **kwargs):
         params = {'query': query}
         params.update(extra_params)
+
+        headers = {'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT}
+        if compress:
+            headers['Content-Encoding'] = 'gzip'
 
         response = None
         try:
@@ -93,7 +97,7 @@ class Client(object):
                 params=params,
                 auth=(self.user, self.password),
                 stream=stream,
-                headers={'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT},
+                headers=headers,
                 timeout=(self.timeout, None),
                 **kwargs
             )
@@ -128,7 +132,7 @@ class Client(object):
         )
 
     def query(self, query, data=None, fmt='PrettyCompactMonoBlock',
-              stream=False, verbose=False, query_id=None, **kwargs):
+              stream=False, verbose=False, query_id=None, compress=False, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
         if verbose and self.cli_settings.get('show_formatted_query'):
             # Highlight & reformat the SQL query
@@ -231,7 +235,16 @@ class Client(object):
             has_outfile = False
 
         method = 'GET' if query_split[0].upper() in READ_QUERIES else 'POST'
-        response = self._query(method, query, params, fmt=fmt, stream=stream, data=data, **kwargs)
+        response = self._query(
+            method,
+            query,
+            params,
+            fmt=fmt,
+            stream=stream,
+            data=data,
+            compress=compress,
+            **kwargs
+        )
 
         if has_outfile:
             try:
