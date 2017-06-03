@@ -216,12 +216,17 @@ class CLI:
             self.echo.success("Bye.")
 
     def handle_input(self, input_data, verbose=True, refresh_metadata=True):
+        force_pager = False
+        if input_data.endswith(r'\p' if isinstance(input_data, str) else rb'\p'):
+            input_data = input_data[:-2]
+            force_pager = True
+
         # FIXME: A dirty dirty hack to make multiple queries (per one paste) work.
         self.query_ids = []
         for query in sqlparse.split(input_data):
             query_id = str(uuid4())
             self.query_ids.append(query_id)
-            self.handle_query(query, verbose=verbose, query_id=query_id)
+            self.handle_query(query, verbose=verbose, query_id=query_id, force_pager=force_pager)
 
         if refresh_metadata and input_data:
             self.cli.application.buffer.completer.refresh_metadata()
@@ -229,9 +234,11 @@ class CLI:
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None):
         if query.rstrip(';') == '':
             return
+
         elif query.lower() in EXIT_COMMANDS:
             raise EOFError
-        elif query.lower() in ('\?', 'help'):
+
+        elif query.lower() in (r'\?', 'help'):
             rows = [
                 ['', ''],
                 ["clickhouse-cli's custom commands:", ''],
@@ -243,13 +250,17 @@ class CLI:
                 ['', ''],
                 ["PostgreSQL-like custom commands:", ''],
                 ['--------------------------------', ''],
-                ['\l', "Show databases."],
-                ['\c', "Change the current database."],
-                ['\d, \dt', "Show tables in the current database."],
-                ['\d+', "Show table's schema."],
-                ['\ps', "Show current queries."],
-                ['\kill', "Kill query by its ID."],
+                [r'\l', "Show databases."],
+                [r'\c', "Change the current database."],
+                [r'\d, \dt', "Show tables in the current database."],
+                [r'\d+', "Show table's schema."],
+                [r'\ps', "Show current queries."],
+                [r'\kill', "Kill query by its ID."],
                 ['', ''],
+                ["Query suffixes:", ''],
+                ['---------------', ''],
+                [r'\g, \G', "Use the Vertical format."],
+                [r'\p', "Enable the pager."],
             ]
 
             for row in rows:
@@ -257,20 +268,25 @@ class CLI:
                 self.echo.info(row[1])
             return
 
-        elif query in ('\d', '\dt'):
+        elif query in (r'\d', r'\dt'):
             query = 'SHOW TABLES'
-        elif query in ('\l',):
-            query = 'SHOW DATABASES'
-        elif query.startswith('\d+ '):
+
+        elif query.startswith(r'\d+ '):
             query = 'DESCRIBE TABLE ' + query[4:]
-        elif query.startswith('\c '):
+
+        elif query == r'\l':
+            query = 'SHOW DATABASES'
+
+        elif query.startswith(r'\c '):
             query = 'USE ' + query[3:]
-        elif query.startswith('\ps'):
+
+        elif query.startswith(r'\ps'):
             query = (
                 "SELECT query_id, user, address, elapsed, {}, memory_usage "
                 "FROM system.processes WHERE query_id != '{}'"
             ).format('read_rows' if self.server_version[2] >= 54115 else 'rows_read', query_id)
-        elif query.startswith('\kill '):
+
+        elif query.startswith(r'\kill '):
             self.client.kill_query(query[6:])
             return
 
@@ -283,7 +299,7 @@ class CLI:
                 data=data,
                 stream=stream,
                 verbose=verbose,
-                query_id=query_id
+                query_id=query_id,
             )
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
@@ -292,7 +308,9 @@ class CLI:
             self.echo.error("Error: Failed to connect.")
             return
         except DBException as e:
-            self.echo.error("\nReceived exception from server:")
+            self.echo.error("\nQuery:")
+            self.echo.error(query)
+            self.echo.error("\n\nReceived exception from server:")
             self.echo.error(e.error)
 
             if self.stacktrace and e.stacktrace:
@@ -314,7 +332,10 @@ class CLI:
 
         else:
             if response.data != '':
-                print_func = self.echo.pager if self.config.getboolean('main', 'pager') else print
+                print_func = print
+
+                if self.config.getboolean('main', 'pager') or kwargs.pop('force_pager', False):
+                    print_func = self.echo.pager
 
                 should_highlight_output = (
                     verbose and

@@ -399,13 +399,16 @@ AGGREGATION_FUNCTIONS_BASE = (
     'sequenceMatch',
     'sequenceCount',
     'uniqUpTo',
+    'topK',
 )
 
 AGGREGATION_FUNCTIONS = (
     AGGREGATION_FUNCTIONS_BASE +
     tuple(name + 'If' for name in AGGREGATION_FUNCTIONS_BASE) +
     tuple(name + 'Array' for name in AGGREGATION_FUNCTIONS_BASE) +
-    tuple(name + 'State' for name in AGGREGATION_FUNCTIONS_BASE)
+    tuple(name + 'Merge' for name in AGGREGATION_FUNCTIONS_BASE) +
+    tuple(name + 'State' for name in AGGREGATION_FUNCTIONS_BASE) +
+    tuple(name + 'MergeState' for name in AGGREGATION_FUNCTIONS_BASE)
 )
 
 DATATYPES = (
@@ -474,6 +477,7 @@ FORMATS = PRETTY_FORMATS + (
     'TSKV',
     'XML',
     'Null',
+    'Dictionary',
 )
 
 READ_QUERIES = (
@@ -523,11 +527,11 @@ EXIT_COMMANDS = (
     'дщпщгеж',
     'q',
     'й',
-    '\q',
-    '\Q',
+    r'\q',
+    r'\Q',
     ':q',
-    '\й',
-    '\Й',
+    r'\й',
+    r'\Й',
     'Жй',
 )
 
@@ -551,17 +555,17 @@ SHOW_SUBCOMMANDS = (
 
 HELP_COMMANDS = (
     'help',
-    '\?',
+    r'\?',
 )
 
 REDIRECTION_COMMANDS = (
-    '\d',
-    '\d+',
-    '\dt',
-    '\c',
-    '\l',
-    '\ps',
-    '\kill',
+    r'\d',
+    r'\d+',
+    r'\dt',
+    r'\c',
+    r'\l',
+    r'\ps',
+    r'\kill',
 )
 
 INTERNAL_COMMANDS = EXIT_COMMANDS + HELP_COMMANDS + REDIRECTION_COMMANDS

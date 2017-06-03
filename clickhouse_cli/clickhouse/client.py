@@ -196,7 +196,8 @@ class Client(object):
                 fmt = query_split[-1]
             elif query_split[-2].upper() != 'FORMAT':
                 if query_split[0].upper() != 'INSERT' or data is not None:
-                    if query.endswith('\G') or query.endswith('\g'):
+
+                    if query[-2:] in (r'\g', r'\G'):
                         query = query[:-2] + ' FORMAT Vertical'
                     else:
                         query = query + ' FORMAT {fmt}'.format(fmt=fmt)

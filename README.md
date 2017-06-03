@@ -114,6 +114,11 @@ Python 3.4+ is required.
     \ps     Show current queries.
     \kill   Kill query by its ID.
 
+    Query suffixes:
+    ---------------
+    \g, \G  Use the Vertical format.
+    \p      Enable the pager.
+
      :) \l
 
     ┌─name───────┐
