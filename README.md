@@ -12,8 +12,6 @@ It implements some common and awesome things, such as:
 But it works over the HTTP port, so there are some limitations for now:
 
   - Doesn't fully support sessions. `SET` options are stored locally and are sent with every request.
-  - Doesn't show progress bar and memory usage stats. Yet.
-
 
 ## Install
 
