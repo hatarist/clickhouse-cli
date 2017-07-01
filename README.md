@@ -12,8 +12,6 @@ It implements some common and awesome things, such as:
 But it works over the HTTP port, so there are some limitations for now:
 
   - Doesn't fully support sessions. `SET` options are stored locally and are sent with every request.
-  - Doesn't show progress bar and memory usage stats. Yet.
-
 
 ## Install
 
@@ -30,7 +28,7 @@ Python 3.4+ is required.
       A third-party client for the ClickHouse DBMS.
     
     Options:
-      -h, --host TEXT          Server host
+      -h, --host TEXT          Server host (hostname, or URL)
       -p, --port INTEGER       Server HTTP port
       -u, --user TEXT          User
       -P, --password           Password

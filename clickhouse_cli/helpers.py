@@ -9,6 +9,15 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
+def numberunit_fmt(num):
+    for unit in ['', 'thousand', 'million', 'billion', 'trillion']:
+        if abs(num) < 1000.0:
+            return "%3.1f %s" % (num, unit)
+        num /= 1000.0
+    return "%.1f %s" % (num, 'quadrillion')
+
+def trace_headers_stream(line):
+    pass
 
 def parse_headers_stream(fp, _class=http.client.HTTPMessage):
     """A modified version of http.client.parse_headers."""
@@ -19,12 +28,10 @@ def parse_headers_stream(fp, _class=http.client.HTTPMessage):
         if len(line) > http.client._MAXLINE:
             raise http.client.LineTooLong("header line")
 
-        # if line.startswith(b'X-ClickHouse-Progress: '):
-            # progress = json.loads(line[23:].decode().strip())
-            # percents = int((int(progress['read_rows']) / int(progress['total_rows'])) * 100)
-            # print('Loading: {}%, read: {}'.format(percents, sizeof_fmt(int(progress['read_bytes']))))
-
-        headers.append(line)
+        if line.startswith(b'X-ClickHouse-Progress: ') and trace_headers_stream:
+            trace_headers_stream(line)
+        else:
+            headers.append(line)
 
         # _MAXHEADERS check was removed here since ClickHouse may send a lot of Progress headers.
 

@@ -5,7 +5,7 @@ import sqlparse
 import pygments
 
 from requests.packages.urllib3.util.retry import Retry
-from pygments.formatters import TerminalTrueColorFormatter
+from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli import __version__
@@ -143,14 +143,16 @@ class Client(object):
                 # keyword_case='upper'  # works poorly in a few cases
             )
 
-            if self.cli_settings.get('highlight'):
-                print('\n' + pygments.highlight(
-                    formatted_query,
-                    CHLexer(),
-                    TerminalTrueColorFormatter(style=CHPygmentsStyle)
-                ))
-            else:
-                print('\n' + formatted_query)
+            formatter = TerminalFormatter()
+
+            if self.cli_settings.get('highlight') and self.cli_settings.get('highlight_truecolor'):
+                formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
+
+            print('\n' + pygments.highlight(
+                formatted_query,
+                CHLexer(),
+                formatter
+            ))
 
         # TODO: use sqlparse's parser instead
         query_split = query.split()

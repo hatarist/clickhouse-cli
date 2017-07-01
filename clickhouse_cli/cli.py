@@ -1,8 +1,12 @@
 import http.client
 import os
+import sys
+import json
+import shutil
 
 from uuid import uuid4
-from urllib.parse import parse_qs
+from urllib.parse import urlparse, parse_qs
+from datetime import datetime
 
 import click
 import pygments
@@ -12,11 +16,12 @@ from prompt_toolkit import Application, CommandLineInterface
 from prompt_toolkit.layout.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
 
+import clickhouse_cli.helpers
 from clickhouse_cli import __version__
 from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBException, TimeoutError
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
-from clickhouse_cli.helpers import parse_headers_stream
+from clickhouse_cli.helpers import parse_headers_stream, sizeof_fmt, numberunit_fmt
 from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import (
     CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
@@ -59,11 +64,18 @@ class CLI:
         self.query_ids = []
         self.client = None
         self.echo = Echo(verbose=True, colors=True)
+        self.progress = None
 
         self.metadata = {}
 
     def connect(self):
-        self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
+        self.scheme = 'http'
+        if '://' in self.host:
+            u = urlparse(self.host, allow_fragments = False)
+            self.host = u.hostname
+            self.port = u.port or self.port
+            self.scheme = u.scheme
+        self.url = '{scheme}://{host}:{port}/'.format(scheme=self.scheme, host=self.host, port=self.port)
         self.client = Client(
             self.url,
             self.user,
@@ -121,6 +133,7 @@ class CLI:
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight = self.config.getboolean('main', 'highlight')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
+        self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
 
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
@@ -315,6 +328,8 @@ class CLI:
 
         response = ''
 
+        self.progress_reset()
+
         try:
             response = self.client.query(
                 query,
@@ -332,6 +347,7 @@ class CLI:
             self.echo.error("Error: Failed to connect.")
             return
         except DBException as e:
+            self.progress_reset()
             self.echo.error("\nQuery:")
             self.echo.error(query)
             self.echo.error("\n\nReceived exception from server:")
@@ -346,6 +362,8 @@ class CLI:
             ))
 
             return
+
+        total_rows, total_bytes = self.progress_reset()
 
         self.echo.print()
 
@@ -370,7 +388,7 @@ class CLI:
 
                 formatter = TerminalFormatter()
 
-                if self.highlight:
+                if self.highlight and self.highlight_truecolor:
                     formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
 
                 if should_highlight_output:
@@ -395,12 +413,62 @@ class CLI:
             ), end=' ')
 
         if self.config.getboolean('main', 'timing') and response.time_elapsed is not None:
-            self.echo.print('Elapsed: {elapsed:.3f} sec.'.format(
-                elapsed=response.time_elapsed
+            self.echo.print('Elapsed: {elapsed:.3f} sec. Processed: {rows} rows, {bytes} ({avg_rps} rows/s, {avg_bps}/s)'.format(
+                elapsed=response.time_elapsed,
+                rows=numberunit_fmt(total_rows),
+                bytes=sizeof_fmt(total_bytes),
+                avg_rps=numberunit_fmt(total_rows / max(response.time_elapsed, 0.001)),
+                avg_bps=sizeof_fmt(total_bytes / max(response.time_elapsed, 0.001)),
             ), end='')
 
         self.echo.print('\n')
 
+    def progress_update(self, line):
+        if not self.config.getboolean('main', 'timing'):
+            return
+        # Parse X-ClickHouse-Progress header
+        now = datetime.now()
+        progress = json.loads(line[23:].decode().strip())
+        progress = {
+            'timestamp': now,
+            'read_rows': int(progress['read_rows']),
+            'total_rows': int(progress['total_rows']),
+            'read_bytes': int(progress['read_bytes']),
+        }
+        # Calculate percentage completed and format initial message
+        progress['percents'] = int((progress['read_rows'] / progress['total_rows']) * 100) if progress['total_rows'] > 0 else 0
+        message = 'Progress: {} rows, {}'.format(numberunit_fmt(progress['read_rows']), sizeof_fmt(progress['read_bytes']))
+        # Calculate row and byte read velocity
+        if self.progress:
+            delta = (now - self.progress['timestamp']).total_seconds()
+            if delta > 0:
+                rps = (progress['read_rows'] - self.progress['read_rows']) / delta
+                bps = (progress['read_bytes'] - self.progress['read_bytes']) / delta
+                message += ' ({} rows/s, {}/s)'.format(numberunit_fmt(rps), sizeof_fmt(bps))
+        self.progress = progress
+        self.progress_print(message, progress['percents'])
+
+    def progress_reset(self):
+        progress = self.progress
+        self.progress = None
+        clickhouse_cli.helpers.trace_headers_stream = self.progress_update
+        # Clear printed progress (if any)
+        columns = shutil.get_terminal_size((80, 0)).columns
+        sys.stdout.write(u"\u001b[%dD" % columns + " " * columns)
+        sys.stdout.flush()
+        # Report totals
+        if progress:
+            return (progress['read_rows'], progress['read_bytes'])
+        return (0, 0)
+
+    def progress_print(self, message, percents):
+        suffix = '%3d%%' % percents
+        columns = shutil.get_terminal_size((80, 0)).columns
+        bars_max = columns - (len(message) + len(suffix) + 3)
+        bars = int(percents * (bars_max / 100)) if (bars_max > 0) else 0
+        message = '{} \033[42m{}\033[0m{} {}'.format(message, " " * bars, " " * (bars_max - bars), suffix)
+        sys.stdout.write(u"\u001b[%dD" % columns + message)
+        sys.stdout.flush()
 
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
