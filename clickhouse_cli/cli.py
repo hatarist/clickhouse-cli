@@ -2,7 +2,7 @@ import http.client
 import os
 
 from uuid import uuid4
-from urllib.parse import parse_qs
+from urllib.parse import urlparse, parse_qs
 
 import click
 import pygments
@@ -63,7 +63,13 @@ class CLI:
         self.metadata = {}
 
     def connect(self):
-        self.url = 'http://{host}:{port}/'.format(host=self.host, port=self.port)
+        self.scheme = 'http'
+        if '://' in self.host:
+            u = urlparse(self.host, allow_fragments = False)
+            self.host = u.hostname
+            self.port = u.port or self.port
+            self.scheme = u.scheme
+        self.url = '{scheme}://{host}:{port}/'.format(scheme=self.scheme, host=self.host, port=self.port)
         self.client = Client(
             self.url,
             self.user,

@@ -30,7 +30,7 @@ Python 3.4+ is required.
       A third-party client for the ClickHouse DBMS.
     
     Options:
-      -h, --host TEXT          Server host
+      -h, --host TEXT          Server host (hostname, or URL)
       -p, --port INTEGER       Server HTTP port
       -u, --user TEXT          User
       -P, --password           Password
