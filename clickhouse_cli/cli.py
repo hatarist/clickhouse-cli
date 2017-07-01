@@ -127,6 +127,7 @@ class CLI:
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight = self.config.getboolean('main', 'highlight')
         self.highlight_output = self.config.getboolean('main', 'highlight_output')
+        self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
 
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
@@ -376,7 +377,7 @@ class CLI:
 
                 formatter = TerminalFormatter()
 
-                if self.highlight:
+                if self.highlight and self.highlight_truecolor:
                     formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
 
                 if should_highlight_output:

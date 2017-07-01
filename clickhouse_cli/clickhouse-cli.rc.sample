@@ -31,6 +31,9 @@ highlight = True
 # Syntax highlight certain output in the interactive mode:
 highlight_output = True
 
+# Syntax highlighting in TrueColor (if supported, see https://gist.github.com/XVilka/8346728)
+highlight_truecolor = True
+
 # Show the output via pager (if defined)
 pager = False
 
