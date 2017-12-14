@@ -473,8 +473,8 @@ class CLI:
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
 ))
-@click.option('--host', '-h', help="Server host")
-@click.option('--port', '-p', type=click.INT, help="Server HTTP port")
+@click.option('--host', '-h', help="Server host, set to https://<host>:<port> if you want to use HTTPS")
+@click.option('--port', '-p', type=click.INT, help="Server HTTP/HTTPS port")
 @click.option('--user', '-u', help="User")
 @click.option('--password', '-P', is_flag=True, help="Password")
 @click.option('--database', '-d', help="Database")
