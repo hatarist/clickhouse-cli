@@ -144,7 +144,7 @@ class CLI:
         self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
         self.port = self.port or self.config.get('defaults', 'port') or 8123
         self.user = self.user or self.config.get('defaults', 'user') or 'default'
-        self.password = self.password or self.config.get('defaults', 'password') or ''
+        self.password = self.password or self.config.get('defaults', 'password') or os.environ.get('CLICKHOUSE_PASSWORD', '')
         self.database = self.database or self.config.get('defaults', 'db') or 'default'
 
         config_settings = dict(self.config.items('settings'))
