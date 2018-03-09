@@ -81,7 +81,6 @@ class CLI:
             self.user,
             self.password,
             self.database,
-            self.settings,
             self.stacktrace,
             self.conn_timeout,
             self.conn_timeout_retry,
@@ -93,6 +92,9 @@ class CLI:
         )
 
         try:
+            for key, value in self.settings.items():
+                self.client.query('SET {}={}'.format(key, value), fmt='Null')
+
             response = self.client.query('SELECT version();', fmt='TabSeparated')
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")

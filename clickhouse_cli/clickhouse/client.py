@@ -1,3 +1,4 @@
+import uuid
 import logging
 
 import requests
@@ -61,13 +62,13 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user, password, database, settings=None, stacktrace=False, timeout=10.0,
+    def __init__(self, url, user, password, database, stacktrace=False, timeout=10.0,
                  timeout_retry=0, timeout_retry_delay=0.0):
         self.url = url
         self.user = user
         self.password = password or ''
         self.database = database
-        self.settings = settings or {}
+        self.session_id = str(uuid.uuid4())
         self.cli_settings = {}
         self.stacktrace = stacktrace
         self.timeout = timeout
@@ -81,7 +82,7 @@ class Client(object):
         self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
 
     def _query(self, method, query, extra_params, fmt, stream, data=None, compress=False, **kwargs):
-        params = {'query': query}
+        params = {'query': query, 'session_id': self.session_id}
         params.update(extra_params)
 
         headers = {'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT}
@@ -113,7 +114,6 @@ class Client(object):
 
     def test_query(self):
         params = {'database': self.database}
-        params.update(self.settings)
         return self._query(
             'GET',
             'SELECT 1',
@@ -179,23 +179,6 @@ class Client(object):
                 )
             )
 
-        # SET foo = 100, fizz = 'buzz';
-        if query_split[0].upper() == 'SET':
-            settings_backup = self.settings.copy()
-            for option in ' '.join(query_split[1:]).split(','):
-                key, value = option.split('=')
-                key, value = key.strip(), value.strip().strip("'")
-
-                self.settings[key] = value
-                try:
-                    self.test_query()
-                except DBException as e:
-                    # Roll back all settings, not even keeping the successfully set ones
-                    self.settings = settings_backup
-                    raise e
-
-            return Response(query, fmt)
-
         # Set response format
         if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
             if query_split[-2].upper() == 'FORMAT':
@@ -211,8 +194,6 @@ class Client(object):
         params = {'database': self.database, 'stacktrace': int(self.stacktrace)}
         if query_id:
             params['query_id'] = query_id
-
-        params.update(self.settings)
 
         # Detect INTO OUTFILE at the end of the query
         t_query = [
