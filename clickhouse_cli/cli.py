@@ -71,7 +71,7 @@ class CLI:
     def connect(self):
         self.scheme = 'http'
         if '://' in self.host:
-            u = urlparse(self.host, allow_fragments = False)
+            u = urlparse(self.host, allow_fragments=False)
             self.host = u.hostname
             self.port = u.port or self.port
             self.scheme = u.scheme
@@ -390,7 +390,7 @@ class CLI:
 
                 formatter = TerminalFormatter()
 
-                if self.highlight and self.highlight_truecolor:
+                if self.highlight and self.highlight_output and self.highlight_truecolor:
                     formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
 
                 if should_highlight_output:
@@ -426,7 +426,7 @@ class CLI:
         self.echo.print('\n')
 
     def progress_update(self, line):
-        if not self.config.getboolean('main', 'timing'):
+        if not self.config.getboolean('main', 'timing') and not self.echo.verbose:
             return
         # Parse X-ClickHouse-Progress header
         now = datetime.now()
@@ -451,6 +451,9 @@ class CLI:
         self.progress_print(message, progress['percents'])
 
     def progress_reset(self):
+        if not self.echo.verbose:
+            return (0, 0)
+
         progress = self.progress
         self.progress = None
         clickhouse_cli.helpers.trace_headers_stream = self.progress_update
@@ -472,9 +475,8 @@ class CLI:
         sys.stdout.write(u"\u001b[%dD" % columns + message)
         sys.stdout.flush()
 
-@click.command(context_settings=dict(
-    ignore_unknown_options=True,
-))
+
+@click.command(context_settings={'ignore_unknown_options': True})
 @click.option('--host', '-h', help="Server host, set to https://<host>:<port> if you want to use HTTPS")
 @click.option('--port', '-p', type=click.INT, help="Server HTTP/HTTPS port")
 @click.option('--user', '-u', help="User")
@@ -512,8 +514,7 @@ def run_cli(host, port, user, password, database, settings, query, format,
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
-        host, port, user, password, database, settings,
-        format, format_stdin, multiline, stacktrace
+        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace
     )
     cli.run(query, data_input)
 
