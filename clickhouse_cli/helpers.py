@@ -9,15 +9,21 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
+
 def numberunit_fmt(num):
+    if not num:
+        return "0"
+
     for unit in ['', 'thousand', 'million', 'billion', 'trillion']:
         if abs(num) < 1000.0:
-            return "%3.1f %s" % (num, unit)
+            return ("%3.1f %s" % (num, unit)).strip()
         num /= 1000.0
     return "%.1f %s" % (num, 'quadrillion')
 
-def trace_headers_stream(line):
+
+def trace_headers_stream(*args):
     pass
+
 
 def parse_headers_stream(fp, _class=http.client.HTTPMessage):
     """A modified version of http.client.parse_headers."""
