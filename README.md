@@ -157,6 +157,22 @@ Python 3.4+ is required.
 
 ## Advanced usage
 
+### Environment variables
+
+The available environment variables are:
+
+ - `CLICKHOUSE_HOST`
+ - `CLICKHOUSE_PORT`
+ - `CLICKHOUSE_USER`
+ - `CLICKHOUSE_PASSWORD`
+ - `CLICKHOUSE_DATABASE`
+
+The order of precedence is:
+
+ - command argument
+ - environment variable
+ - default value in the `~/.clickhouse-cli.rc`
+
 ### Reading from file / stdin
 
     $ echo 'SELECT 1, 2, 3; SELECT 4, 5, 6;' | clickhouse-cli
