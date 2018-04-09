@@ -141,11 +141,11 @@ class CLI:
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
         self.conn_timeout_retry_delay = self.config.getfloat('http', 'conn_timeout_retry_delay')
 
-        self.host = self.host or self.config.get('defaults', 'host') or '127.0.0.1'
-        self.port = self.port or self.config.get('defaults', 'port') or 8123
-        self.user = self.user or self.config.get('defaults', 'user') or 'default'
-        self.password = self.password or self.config.get('defaults', 'password') or os.environ.get('CLICKHOUSE_PASSWORD', '')
-        self.database = self.database or self.config.get('defaults', 'db') or 'default'
+        self.host = self.host or os.environ.get('CLICKHOUSE_HOST', '') or self.config.get('defaults', 'host') or '127.0.0.1'
+        self.port = self.port or int(os.environ.get('CLICKHOUSE_PORT', '0')) or self.config.get('defaults', 'port') or 8123
+        self.user = self.user or os.environ.get('CLICKHOUSE_USER', '') or self.config.get('defaults', 'user') or 'default'
+        self.password = self.password or os.environ.get('CLICKHOUSE_PASSWORD', '') or self.config.get('defaults', 'password')
+        self.database = self.database or os.environ.get('CLICKHOUSE_DATABASE', '') or self.config.get('defaults', 'db') or 'default'
 
         config_settings = dict(self.config.items('settings'))
         arg_settings = self.settings
