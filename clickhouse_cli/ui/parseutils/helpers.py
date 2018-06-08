@@ -14,20 +14,22 @@ from clickhouse_cli.clickhouse.definitions import *
 
 Special = namedtuple('Special', [])
 Database = namedtuple('Database', [])
-Schema = Database
+Schema = namedtuple('Schema', ['quoted'])
+Schema.__new__.__defaults__ = (False,)
 # FromClauseItem is a table/view/function used in the FROM clause
 # `table_refs` contains the list of tables/... already in the statement,
 # used to ensure that the alias we suggest is unique
 FromClauseItem = namedtuple('FromClauseItem', 'schema table_refs local_tables')
 Table = namedtuple('Table', ['schema', 'table_refs', 'local_tables'])
+TableFormat = namedtuple('TableFormat', [])
 View = namedtuple('View', ['schema', 'table_refs'])
 # JoinConditions are suggested after ON, e.g. 'foo.barid = bar.barid'
 JoinCondition = namedtuple('JoinCondition', ['table_refs', 'parent'])
 # Joins are suggested after JOIN, e.g. 'foo ON foo.barid = bar.barid'
 Join = namedtuple('Join', ['table_refs', 'schema'])
 
-Function = namedtuple('Function', ['schema', 'table_refs', 'filter'])
-# For convenience, don't require the `filter` argument in Function constructor
+Function = namedtuple('Function', ['schema', 'table_refs', 'usage'])
+# For convenience, don't require the `usage` argument in Function constructor
 Function.__new__.__defaults__ = (None, tuple(), None)
 Table.__new__.__defaults__ = (None, tuple(), tuple())
 View.__new__.__defaults__ = (None, tuple())
@@ -35,11 +37,13 @@ FromClauseItem.__new__.__defaults__ = (None, tuple(), tuple())
 
 Column = namedtuple(
     'Column',
-    ['table_refs', 'require_last_table', 'local_tables', 'qualifiable']
+    ['table_refs', 'require_last_table', 'local_tables', 'qualifiable', 'context']
 )
-Column.__new__.__defaults__ = (None, None, tuple(), False)
+Column.__new__.__defaults__ = (None, None, tuple(), False, None)
 
-Keyword = namedtuple('Keyword', [])
+Keyword = namedtuple('Keyword', ['last_token'])
+Keyword.__new__.__defaults__ = (None,)
+NamedQuery = namedtuple('NamedQuery', [])
 Datatype = namedtuple('Datatype', ['schema'])
 Alias = namedtuple('Alias', ['aliases'])
 
@@ -534,12 +538,18 @@ def SchemaObject(name, schema=None, function=False):
 
 
 _Candidate = namedtuple(
-    'Candidate', ['completion', 'prio', 'meta', 'synonyms', 'prio2']
+    'Candidate', 'completion prio meta synonyms prio2 display'
 )
 
 
-def Candidate(completion, prio=None, meta=None, synonyms=None, prio2=None):
-    return _Candidate(completion, prio, meta, synonyms or [completion], prio2)
+def Candidate(
+        completion, prio=None, meta=None, synonyms=None, prio2=None,
+        display=None
+):
+    return _Candidate(
+        completion, prio, meta, synonyms or [completion], prio2,
+        display or completion
+    )
 
 
 def normalize_ref(ref):

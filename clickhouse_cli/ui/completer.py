@@ -15,11 +15,14 @@ from clickhouse_cli.clickhouse.definitions import *
 from clickhouse_cli.ui.parseutils.helpers import (
     Special, Database, FromClauseItem, Table, View, JoinCondition, Join, Function, Column, Keyword,
     Datatype, Alias, Path, Schema, PrevalenceCounter, Match, SchemaObject, _Candidate, Candidate,
-    normalize_ref, generate_alias, suggest_type
+    TableFormat, NamedQuery, normalize_ref, generate_alias, suggest_type
 )
 
 
 class CHCompleter(Completer):
+    keywords = KEYWORDS
+    functions = FUNCTIONS
+    datatypes = DATATYPES
 
     def __init__(self, client, metadata):
         super(CHCompleter, self).__init__()
@@ -42,8 +45,11 @@ class CHCompleter(Completer):
             self.reserved_words.update(x.split())
         self.name_pattern = re.compile("^[_a-z][_a-z0-9\$]*$")
 
-        self.metadata = metadata
-        self.metadata['all'] = set(KEYWORDS + FUNCTIONS)
+        self.databases = []
+        self.dbmetadata = {'tables': {}, 'views': {}, 'functions': {},
+                           'datatypes': {}}
+        self.dbmetadata = metadata
+        self.all_completions = set(KEYWORDS + FUNCTIONS)
 
     def _select(self, query, flatten=True, *args, **kwargs):
         data = self.client.query(query, fmt='TabSeparated').data
@@ -67,11 +73,11 @@ class CHCompleter(Completer):
 
     def refresh_metadata(self):
         try:
-            self.metadata['databases'] = self.get_databases()
-            self.metadata['tables'] = self.get_tables_and_columns()
-            self.metadata['views'] = {}
-            self.metadata['functions'] = {}
-            self.metadata['datatypes'] = DATATYPES
+            self.dbmetadata['databases'] = self.get_databases()
+            self.dbmetadata['tables'] = self.get_tables_and_columns()
+            self.dbmetadata['views'] = {}
+            self.dbmetadata['functions'] = {}
+            self.dbmetadata['datatypes'] = DATATYPES
         except Exception:
             pass  # We don't want to brag about the broken autocompletion
 
@@ -114,14 +120,17 @@ class CHCompleter(Completer):
                 flatten=False)
         return [field[0] for field in result]
 
+
     def escape_name(self, name):
-        if name and (
-                not self.name_pattern.match(name) or
-                name.upper() in self.reserved_words or
-                name.upper() in FUNCTIONS):
+        if name and ((not self.name_pattern.match(name))
+                or (name.upper() in self.reserved_words)
+                or (name.upper() in self.functions)):
             name = '"%s"' % name
 
         return name
+
+    def escape_schema(self, name):
+        return "'{}'".format(self.unescape_name(name))
 
     def unescape_name(self, name):
         """ Unquote a string."""
@@ -134,30 +143,26 @@ class CHCompleter(Completer):
         return [self.escape_name(name) for name in names]
 
     def extend_database_names(self, databases):
-        databases = self.escaped_names(databases)
-        self.metadata['databases'].extend(databases)
+        self.databases.extend(databases)
 
     def extend_keywords(self, additional_keywords):
-        KEYWORDS.extend(additional_keywords)
-        self.metadata['all'].update(additional_keywords)
+        self.keywords.extend(additional_keywords)
+        self.all_completions.update(additional_keywords)
 
     def extend_schemata(self, schemata):
-        # FIXME
 
-        # # schemata is a list of schema names
-        # schemata = self.escaped_names(schemata)
-        # metadata = self.metadata['tables']
-        # for schema in schemata:
-        #     metadata[schema] = {}
+        # schemata is a list of schema names
+        schemata = self.escaped_names(schemata)
+        metadata = self.dbmetadata['tables']
+        for schema in schemata:
+            metadata[schema] = {}
 
-        # # dbmetadata.values() are the 'tables' and 'functions' dicts
-        # for metadata in self.metadata.values():
-        #     for schema in schemata:
-        #         metadata[schema] = {}
+        # dbmetadata.values() are the 'tables' and 'functions' dicts
+        for metadata in self.dbmetadata.values():
+            for schema in schemata:
+                metadata[schema] = {}
 
-        # self.metadata['all'].update(schemata)
-
-        return self.metadata['databases']
+        self.all_completions.update(schemata)
 
     def extend_casing(self, words):
         """ extend casing data
@@ -168,51 +173,57 @@ class CHCompleter(Completer):
         self.casing = dict((word.lower(), word) for word in words)
 
     def extend_relations(self, data, kind):
-        """ extend metadata for tables or views
+        """extend metadata for tables or views.
 
         :param data: list of (schema_name, rel_name) tuples
         :param kind: either 'tables' or 'views'
+
         :return:
+
         """
 
         data = [self.escaped_names(d) for d in data]
 
         # dbmetadata['tables']['schema_name']['table_name'] should be an
         # OrderedDict {column_name:ColumnMetaData}.
-        metadata = self.metadata[kind]
+        metadata = self.dbmetadata[kind]
         for schema, relname in data:
             try:
                 metadata[schema][relname] = OrderedDict()
             except KeyError:
                 pass
-            self.metadata['all'].add(relname)
+            self.all_completions.add(relname)
 
     def extend_columns(self, column_data, kind):
-        """ extend column metadata
+        """extend column metadata.
 
-        :param column_data: list of (schema_name, rel_name, column_name, column_type) tuples
+        :param column_data: list of (schema_name, rel_name, column_name,
+        column_type, has_default, default) tuples
         :param kind: either 'tables' or 'views'
+
         :return:
+
         """
-        metadata = self.metadata[kind]
-        for schema, relname, colname, datatype in column_data:
+        metadata = self.dbmetadata[kind]
+        for schema, relname, colname, datatype, has_default, default in column_data:
             (schema, relname, colname) = self.escaped_names(
                 [schema, relname, colname])
             column = ColumnMetadata(
-                name=colname, datatype=datatype, foreignkeys=[]
+                name=colname,
+                datatype=datatype,
+                has_default=has_default,
+                default=default
             )
             metadata[schema][relname][colname] = column
-            self.metadata['all'].add(colname)
+            self.all_completions.add(colname)
 
     def extend_functions(self, func_data):
 
         # func_data is a list of function metadata namedtuples
-        # with fields schema_name, func_name, arg_list, result,
-        # is_aggregate, is_window, is_set_returning
 
         # dbmetadata['schema_name']['functions']['function_name'] should return
         # the function metadata namedtuple for the corresponding function
-        metadata = self.metadata['functions']
+        metadata = self.dbmetadata['functions']
 
         for f in func_data:
             schema, func = self.escaped_names([f.schema_name, f.func_name])
@@ -222,7 +233,23 @@ class CHCompleter(Completer):
             else:
                 metadata[schema][func] = [f]
 
-            self.metadata['all'].add(func)
+            self.all_completions.add(func)
+
+        self._refresh_arg_list_cache()
+
+    def _refresh_arg_list_cache(self):
+        # We keep a cache of {function_usage:{function_metadata: function_arg_list_string}}
+        # This is used when suggesting functions, to avoid the latency that would result
+        # if we'd recalculate the arg lists each time we suggest functions (in large DBs)
+        self._arg_list_cache = {
+            usage: {
+                meta: self._arg_list(meta, usage)
+                for sch, funcs in self.dbmetadata['functions'].items()
+                for func, metas in funcs.items()
+                for meta in metas
+            }
+            for usage in ('call', 'call_display', 'signature')
+        }
 
     def extend_foreignkeys(self, fk_data):
 
@@ -232,19 +259,17 @@ class CHCompleter(Completer):
 
         # These are added as a list of ForeignKey namedtuples to the
         # ColumnMetadata namedtuple for both the child and parent
-        meta = self.metadata['tables']
+        meta = self.dbmetadata['tables']
 
         for fk in fk_data:
             e = self.escaped_names
             parentschema, childschema = e([fk.parentschema, fk.childschema])
             parenttable, childtable = e([fk.parenttable, fk.childtable])
             childcol, parcol = e([fk.childcolumn, fk.parentcolumn])
-            childcolmeta = meta[childschema][childtable][childcol]
-            parcolmeta = meta[parentschema][parenttable][parcol]
-            fk = ForeignKey(
-                parentschema, parenttable, parcol,
-                childschema, childtable, childcol
-            )
+            childcolmeta =  meta[childschema][childtable][childcol]
+            parcolmeta =  meta[parentschema][parenttable][parcol]
+            fk = ForeignKey(parentschema, parenttable, parcol,
+                childschema, childtable, childcol)
             childcolmeta.foreignkeys.append((fk))
             parcolmeta.foreignkeys.append((fk))
 
@@ -253,12 +278,12 @@ class CHCompleter(Completer):
         # dbmetadata['datatypes'][schema_name][type_name] should store type
         # metadata, such as composite type field names. Currently, we're not
         # storing any metadata beyond typename, so just store None
-        meta = self.metadata['datatypes']
+        meta = self.dbmetadata['datatypes']
 
         for t in type_data:
             schema, type_name = self.escaped_names(t)
             meta[schema][type_name] = None
-            self.metadata['all'].add(type_name)
+            self.all_completions.add(type_name)
 
     def extend_query_history(self, text, is_init=False):
         if is_init:
@@ -272,16 +297,14 @@ class CHCompleter(Completer):
         self.search_path = self.escaped_names(search_path)
 
     def reset_completions(self):
+        self.databases = []
         self.special_commands = []
         self.search_path = []
-        self.metadata['databases'] = []
-        self.metadata['tables'] = {}
-        self.metadata['views'] = {}
-        self.metadata['functions'] = {}
-        self.metadata['datatypes'] = DATATYPES
-        self.metadata['all'] = set(KEYWORDS + FUNCTIONS)
+        self.dbmetadata = {'tables': {}, 'views': {}, 'functions': self.functions,
+                           'datatypes': self.datatypes}
+        self.all_completions = set(self.keywords + self.functions)
 
-    def find_matches(self, text, collection, mode='fuzzy', meta=None):
+    def find_matches(self, text, collection, mode='strict', meta=None):
         """Find completion matches for the given text.
 
         Given the user's input text and a collection of available
@@ -302,7 +325,8 @@ class CHCompleter(Completer):
             return []
         prio_order = [
             'keyword', 'function', 'view', 'table', 'datatype', 'database',
-            'schema', 'column', 'table alias', 'join', 'name join', 'fk join'
+            'schema', 'column', 'table alias', 'join', 'name join', 'fk join',
+            'table format'
         ]
         type_priority = prio_order.index(meta) if meta in prio_order else -1
         text = last_word(text, include='most_punctuations').lower()
@@ -354,7 +378,7 @@ class CHCompleter(Completer):
         matches = []
         for cand in collection:
             if isinstance(cand, _Candidate):
-                item, prio, display_meta, synonyms, prio2 = cand
+                item, prio, display_meta, synonyms, prio2, display = cand
                 if display_meta is None:
                     display_meta = meta
                 syn_matches = (_match(x) for x in synonyms)
@@ -362,7 +386,7 @@ class CHCompleter(Completer):
                 syn_matches = [m for m in syn_matches if m]
                 sort_key = max(syn_matches) if syn_matches else None
             else:
-                item, display_meta, prio, prio2 = cand, meta, 0, 0
+                item, display_meta, prio, prio2, display = cand, meta, 0, 0, cand
                 sort_key = _match(cand)
 
             if sort_key:
@@ -379,20 +403,23 @@ class CHCompleter(Completer):
                 # case-sensitive one as a tie breaker.
                 # We also use the unescape_name to make sure quoted names have
                 # the same priority as unquoted names.
-                lexical_priority = (tuple(0 if c in(' _') else -ord(c) for c in self.unescape_name(item.lower())) + (1,) + tuple(c for c in item))
+                lexical_priority = (tuple(0 if c in(' _') else -ord(c)
+                    for c in self.unescape_name(item.lower())) + (1,)
+                    + tuple(c for c in item))
 
                 item = self.case(item)
+                display = self.case(display)
                 priority = (
                     sort_key, type_priority, prio, priority_func(item),
                     prio2, lexical_priority
                 )
-
                 matches.append(
                     Match(
                         completion=Completion(
-                            item,
-                            -text_len,
-                            display_meta=display_meta
+                            text=item,
+                            start_position=-text_len,
+                            display_meta=display_meta,
+                            display=display
                         ),
                         priority=priority
                     )
@@ -411,7 +438,7 @@ class CHCompleter(Completer):
         # If smart_completion is off then match any word that starts with
         # 'word_before_cursor'.
         if not smart_completion:
-            matches = self.find_matches(word_before_cursor, self.metadata['all'],
+            matches = self.find_matches(word_before_cursor, self.all_completions,
                                         mode='strict')
             completions = [m.completion for m in matches]
             return sorted(completions, key=operator.attrgetter('text'))
@@ -428,56 +455,75 @@ class CHCompleter(Completer):
             matches.extend(matcher(self, suggestion, word_before_cursor))
 
         # Sort matches so highest priorities are first
+        matches = sorted(matches, key=operator.attrgetter('priority'),
+                         reverse=True)
 
-        # FIXME: Breaks the order of fields in table
-        # matches = sorted(matches, key=operator.attrgetter('priority'), reverse=True)
         return [m.completion for m in matches]
 
     def get_column_matches(self, suggestion, word_before_cursor):
         tables = suggestion.table_refs
-        do_qualify = suggestion.qualifiable and {
-            'always': True,
-            'never': False, 'if_more_than_one_table': len(tables) > 1
-        }[self.qualify_columns]
-
-        def qualify(col, tbl):
-            return tbl + '.' + self.case(col) if do_qualify else self.case(col)
+        do_qualify = suggestion.qualifiable and {'always': True, 'never': False,
+            'if_more_than_one_table': len(tables) > 1}[self.qualify_columns]
+        qualify = lambda col, tbl: (
+            (tbl + '.' + self.case(col)) if do_qualify else self.case(col))
         scoped_cols = self.populate_scoped_cols(tables, suggestion.local_tables)
-
-        colit = scoped_cols.items
 
         def make_cand(name, ref):
             synonyms = (name, generate_alias(self.case(name)))
             return Candidate(qualify(name, ref), 0, 'column', synonyms)
-        flat_cols = []
-        for t, cols in colit():
-            for c in cols:
-                flat_cols.append(make_cand(c.name, t.ref))
+
+        def flat_cols():
+            return [make_cand(c.name, t.ref) for t, cols in scoped_cols.items() for c in cols]
         if suggestion.require_last_table:
             # require_last_table is used for 'tb11 JOIN tbl2 USING (...' which should
             # suggest only columns that appear in the last table and one more
             ltbl = tables[-1].ref
-            flat_cols = list(
-                set(c.name for t, cs in colit() if t.ref == ltbl for c in cs) &
-                set(c.name for t, cs in colit() if t.ref != ltbl for c in cs)
-            )
+            other_tbl_cols = set(
+                c.name for t, cs in scoped_cols.items() if t.ref != ltbl for c in cs)
+            scoped_cols = {
+                t: [col for col in cols if col.name in other_tbl_cols]
+                for t, cols in scoped_cols.items()
+                if t.ref == ltbl
+            }
         lastword = last_word(word_before_cursor, include='most_punctuations')
         if lastword == '*':
+            if suggestion.context == 'insert':
+                def filter(col):
+                    if not col.has_default:
+                        return True
+                    return not any(
+                        p.match(col.default)
+                        for p in self.insert_col_skip_patterns
+                    )
+                scoped_cols = {
+                    t: [col for col in cols if filter(col)] for t, cols in scoped_cols.items()
+                }
             if self.asterisk_column_order == 'alphabetic':
-                flat_cols.sort()
                 for cols in scoped_cols.values():
                     cols.sort(key=operator.attrgetter('name'))
-            if (lastword != word_before_cursor and len(tables) == 1 and word_before_cursor[-len(lastword) - 1] == '.'):
+            if (lastword != word_before_cursor and len(tables) == 1
+              and word_before_cursor[-len(lastword) - 1] == '.'):
                 # User typed x.*; replicate "x." for all columns except the
                 # first, which gets the original (as we only replace the "*"")
                 sep = ', ' + word_before_cursor[:-1]
-                collist = sep.join(self.case(c.completion) for c in flat_cols)
+                collist = sep.join(self.case(c.completion)
+                                   for c in flat_cols())
             else:
-                collist = ', '.join(qualify(c.name, t.ref) for t, cs in colit() for c in cs)
+                collist = ', '.join(qualify(c.name, t.ref)
+                                    for t, cs in scoped_cols.items() for c in cs)
 
-            return [Match(completion=Completion(collist, -1, display_meta='columns', display='*'), priority=(1, 1, 1))]
+            return [Match(
+                completion=Completion(
+                    collist,
+                    -1,
+                    display_meta='columns',
+                    display='*'
+                ),
+                priority=(1, 1, 1)
+            )]
 
-        return self.find_matches(word_before_cursor, flat_cols, meta='column')
+        return self.find_matches(word_before_cursor, flat_cols(),
+            meta='column')
 
     def alias(self, tbl, tbls):
         """ Generate a unique table alias
@@ -503,10 +549,12 @@ class CHCompleter(Completer):
         qualified = dict((normalize_ref(t.ref), t.schema) for t in tbls)
         ref_prio = dict((normalize_ref(t.ref), n) for n, t in enumerate(tbls))
         refs = set(normalize_ref(t.ref) for t in tbls)
-        other_tbls = set((t.schema, t.name) for t in list(cols)[:-1])
+        other_tbls = set((t.schema, t.name)
+            for t in list(cols)[:-1])
         joins = []
         # Iterate over FKs in existing tables to find potential joins
-        fks = ((fk, rtbl, rcol) for rtbl, rcols in cols.items() for rcol in rcols for fk in rcol.foreignkeys)
+        fks = ((fk, rtbl, rcol) for rtbl, rcols in cols.items()
+            for rcol in rcols for fk in rcol.foreignkeys)
         col = namedtuple('col', 'schema tbl col')
         for fk, rtbl, rcol in fks:
             right = col(rtbl.schema, rtbl.name, rcol.name)
@@ -528,7 +576,9 @@ class CHCompleter(Completer):
                 alias, c(left.col), rtbl.ref, c(right.col))]
             # Schema-qualify if (1) new table in same schema as old, and old
             # is schema-qualified, or (2) new in other schema, except public
-            if not suggestion.schema and (qualified[normalize_ref(rtbl.ref)] and left.schema == right.schema or left.schema not in(right.schema, 'default')):
+            if not suggestion.schema and (qualified[normalize_ref(rtbl.ref)]
+                and left.schema == right.schema
+                or left.schema not in(right.schema, 'public')):
                 join = left.schema + '.' + join
             prio = ref_prio[normalize_ref(rtbl.ref)] * 2 + (
                 0 if (left.schema, left.tbl) in other_tbls else 1)
@@ -543,7 +593,7 @@ class CHCompleter(Completer):
         try:
             lref = (suggestion.parent or suggestion.table_refs[-1]).ref
             ltbl, lcols = [(t, cs) for (t, cs) in tbls() if t.ref == lref][-1]
-        except IndexError:  # The user typed an incorrect table qualifier
+        except IndexError: # The user typed an incorrect table qualifier
             return []
         conds, found_conds = [], set()
 
@@ -555,16 +605,18 @@ class CHCompleter(Completer):
                 found_conds.add(cond)
                 conds.append(Candidate(cond, prio + ref_prio[rref], meta))
 
-        def list_dict(pairs):  # Turns [(a, b), (a, c)] into {a: [b, c]}
+        def list_dict(pairs): # Turns [(a, b), (a, c)] into {a: [b, c]}
             d = defaultdict(list)
             for pair in pairs:
                 d[pair[0]].append(pair[1])
             return d
 
         # Tables that are closer to the cursor get higher prio
-        ref_prio = dict((tbl.ref, num) for num, tbl in enumerate(suggestion.table_refs))
+        ref_prio = dict((tbl.ref, num) for num, tbl
+            in enumerate(suggestion.table_refs))
         # Map (schema, table, col) to tables
-        coldict = list_dict(((t.schema, t.name, c.name), t) for t, c in cols if t.ref != lref)
+        coldict = list_dict(((t.schema, t.name, c.name), t)
+            for t, c in cols if t.ref != lref)
         # For each fk from the left table, generate a join condition if
         # the other table is also in the scope
         fks = ((fk, lcol.name) for lcol in lcols for fk in lcol.foreignkeys)
@@ -588,66 +640,157 @@ class CHCompleter(Completer):
         return self.find_matches(word_before_cursor, conds, meta='join')
 
     def get_function_matches(self, suggestion, word_before_cursor, alias=False):
-        def _cand(func, alias):
-            return self._make_cand(func, alias, suggestion)
-        if suggestion.filter == 'for_from_clause':
+        if suggestion.usage == 'from':
             # Only suggest functions allowed in FROM clause
-            def filt(f):
-                return not f.is_aggregate and not f.is_window
-            funcs = [_cand(f, alias)
-                     for f in self.populate_functions(suggestion.schema, filt)]
+            def filt(f): return not f.is_aggregate and not f.is_window
         else:
-            fs = self.populate_schema_objects(suggestion.schema, 'functions')
-            funcs = [_cand(f, alias=False) for f in fs]
+            alias = False
 
+            def filt(f): return True
+        arg_mode = {
+            'signature': 'signature',
+            'special': None,
+        }.get(suggestion.usage, 'call')
         # Function overloading means we way have multiple functions of the same
         # name at this point, so keep unique names only
-        funcs = set(funcs)
+        funcs = set(
+            self._make_cand(f, alias, suggestion, arg_mode)
+            for f in self.populate_functions(suggestion.schema, filt)
+        )
 
-        funcs = self.find_matches(word_before_cursor, funcs, meta='function')
+        matches = self.find_matches(word_before_cursor, funcs, meta='function')
 
-        if not suggestion.schema and not suggestion.filter:
+        if not suggestion.schema and not suggestion.usage:
             # also suggest hardcoded functions using startswith matching
             predefined_funcs = self.find_matches(
-                word_before_cursor, FUNCTIONS, mode='strict',
+                word_before_cursor, self.functions, mode='strict',
                 meta='function')
-            funcs.extend(predefined_funcs)
+            matches.extend(predefined_funcs)
 
-        return funcs
+        return matches
+
+    def get_schema_matches(self, suggestion, word_before_cursor):
+        schema_names = self.dbmetadata['tables'].keys()
+
+        # Unless we're sure the user really wants them, hide schema names
+        # starting with pg_, which are mostly temporary schemas
+        if not word_before_cursor.startswith('pg_'):
+            schema_names = [s
+                            for s in schema_names
+                            if not s.startswith('pg_')]
+
+        if suggestion.quoted:
+            schema_names = [self.escape_schema(s) for s in schema_names]
+
+        return self.find_matches(word_before_cursor, schema_names, meta='schema')
 
     def get_from_clause_item_matches(self, suggestion, word_before_cursor):
         alias = self.generate_aliases
         s = suggestion
         t_sug = Table(s.schema, s.table_refs, s.local_tables)
         v_sug = View(s.schema, s.table_refs)
-        f_sug = Function(s.schema, s.table_refs, filter='for_from_clause')
+        f_sug = Function(s.schema, s.table_refs, usage='from')
         return (
-            self.get_table_matches(t_sug, word_before_cursor, alias) +
-            self.get_view_matches(v_sug, word_before_cursor, alias) +
-            self.get_function_matches(f_sug, word_before_cursor, alias)
+            self.get_table_matches(t_sug, word_before_cursor, alias)
+            + self.get_view_matches(v_sug, word_before_cursor, alias)
+            + self.get_function_matches(f_sug, word_before_cursor, alias)
         )
 
-    # Note: tbl is a SchemaObject
-    def _make_cand(self, tbl, do_alias, suggestion):
+    def _arg_list(self, func, usage):
+        """Returns a an arg list string, e.g. `(_foo:=23)` for a func.
+
+        :param func is a FunctionMetadata object
+        :param usage is 'call', 'call_display' or 'signature'
+
+        """
+        template = {
+            'call':  self.call_arg_style,
+            'call_display': self.call_arg_display_style,
+            'signature': self.signature_arg_style
+        }[usage]
+        args = func.args()
+        if not template:
+            return '()'
+        elif usage == 'call' and len(args) < 2:
+            return '()'
+        elif usage == 'call' and func.has_variadic():
+            return '()'
+        multiline = usage == 'call' and len(args) > self.call_arg_oneliner_max
+        max_arg_len = max(len(a.name) for a in args) if multiline else 0
+        args = (
+            self._format_arg(template, arg, arg_num + 1, max_arg_len)
+            for arg_num, arg in enumerate(args)
+        )
+        if multiline:
+            return '(' + ','.join('\n    ' + a for a in args if a) + '\n)'
+        else:
+            return '(' + ', '.join(a for a in args if a) + ')'
+
+    def _format_arg(self, template, arg, arg_num, max_arg_len):
+        if not template:
+            return None
+        if arg.has_default:
+            arg_default = 'NULL' if arg.default is None else arg.default
+            # Remove trailing ::(schema.)type
+            arg_default = arg_default_type_strip_regex.sub('', arg_default)
+        else:
+            arg_default = ''
+        return template.format(
+            max_arg_len=max_arg_len,
+            arg_name=self.case(arg.name),
+            arg_num=arg_num,
+            arg_type=arg.datatype,
+            arg_default=arg_default
+        )
+
+    def _make_cand(self, tbl, do_alias, suggestion, arg_mode=None):
+        """Returns a Candidate namedtuple.
+
+        :param tbl is a SchemaObject
+        :param arg_mode determines what type of arg list to suffix for functions.
+        Possible values: call, signature
+
+        """
         cased_tbl = self.case(tbl.name)
         if do_alias:
             alias = self.alias(cased_tbl, suggestion.table_refs)
         synonyms = (cased_tbl, generate_alias(cased_tbl))
-        maybe_parens = '()' if tbl.function else ''
         maybe_alias = (' ' + alias) if do_alias else ''
         maybe_schema = (self.case(tbl.schema) + '.') if tbl.schema else ''
-        item = maybe_schema + cased_tbl + maybe_parens + maybe_alias
+        suffix = self._arg_list_cache[arg_mode][tbl.meta] if arg_mode else ''
+        if arg_mode == 'call':
+            display_suffix = self._arg_list_cache['call_display'][tbl.meta]
+        elif arg_mode == 'signature':
+            display_suffix = self._arg_list_cache['signature'][tbl.meta]
+        else:
+            display_suffix = ''
+        item = maybe_schema + cased_tbl + suffix + maybe_alias
+        display = maybe_schema + cased_tbl + display_suffix + maybe_alias
         prio2 = 0 if tbl.schema else 1
-        return Candidate(item, synonyms=synonyms, prio2=prio2)
+        return Candidate(item, synonyms=synonyms, prio2=prio2, display=display)
 
     def get_table_matches(self, suggestion, word_before_cursor, alias=False):
         tables = self.populate_schema_objects(suggestion.schema, 'tables')
         tables.extend(SchemaObject(tbl.name) for tbl in suggestion.local_tables)
+
+        # Unless we're sure the user really wants them, don't suggest the
+        # pg_catalog tables that are implicitly on the search path
+        if not suggestion.schema and (
+                not word_before_cursor.startswith('pg_')):
+            tables = [t for t in tables if not t.name.startswith('pg_')]
         tables = [self._make_cand(t, alias, suggestion) for t in tables]
         return self.find_matches(word_before_cursor, tables, meta='table')
 
+    def get_table_formats(self, _, word_before_cursor):
+        formats = TabularOutputFormatter().supported_formats
+        return self.find_matches(word_before_cursor, formats, meta='table format')
+
     def get_view_matches(self, suggestion, word_before_cursor, alias=False):
         views = self.populate_schema_objects(suggestion.schema, 'views')
+
+        if not suggestion.schema and (
+                not word_before_cursor.startswith('pg_')):
+            views = [v for v in views if not v.name.startswith('pg_')]
         views = [self._make_cand(v, alias, suggestion) for v in views]
         return self.find_matches(word_before_cursor, views, meta='view')
 
@@ -657,10 +800,12 @@ class CHCompleter(Completer):
                                  meta='table alias')
 
     def get_database_matches(self, _, word_before_cursor):
-        return self.find_matches(word_before_cursor, self.metadata['databases'],
+        return self.find_matches(word_before_cursor, self.databases,
                                  meta='database')
 
-    def get_keyword_matches(self, _, word_before_cursor):
+    def get_keyword_matches(self, suggestion, word_before_cursor):
+        keywords = self.keywords
+
         casing = self.keyword_casing
         if casing == 'auto':
             if word_before_cursor and word_before_cursor[-1].islower():
@@ -669,9 +814,9 @@ class CHCompleter(Completer):
                 casing = 'upper'
 
         if casing == 'upper':
-            keywords = [k.upper() for k in KEYWORDS]
+            keywords = [k.upper() for k in keywords]
         else:
-            keywords = [k.lower() for k in KEYWORDS]
+            keywords = [k.lower() for k in keywords]
 
         return self.find_matches(word_before_cursor, keywords,
                                  mode='strict', meta='keyword')
@@ -684,15 +829,30 @@ class CHCompleter(Completer):
             yield Match(completion=c, priority=(0,))
 
     def get_special_matches(self, _, word_before_cursor):
-        return []
+        if not self.pgspecial:
+            return []
+
+        commands = self.pgspecial.commands
+        cmds = commands.keys()
+        cmds = [Candidate(cmd, 0, commands[cmd].description) for cmd in cmds]
+        return self.find_matches(word_before_cursor, cmds, mode='strict')
 
     def get_datatype_matches(self, suggestion, word_before_cursor):
+        # suggest custom datatypes
+        types = self.populate_schema_objects(suggestion.schema, 'datatypes')
+        types = [self._make_cand(t, False, suggestion) for t in types]
+        matches = self.find_matches(word_before_cursor, types, meta='datatype')
+
+        if not suggestion.schema:
+            # Also suggest hardcoded types
+            matches.extend(self.find_matches(word_before_cursor, self.datatypes,
+                                             mode='strict', meta='datatype'))
+
+        return matches
+
+    def get_namedquery_matches(self, _, word_before_cursor):
         return self.find_matches(
-            word_before_cursor,
-            DATATYPES,
-            mode='strict',
-            meta='datatype'
-        )
+            word_before_cursor, NamedQueries.instance.list(), meta='named query')
 
     suggestion_matchers = {
         FromClauseItem: get_from_clause_item_matches,
@@ -700,26 +860,30 @@ class CHCompleter(Completer):
         Join: get_join_matches,
         Column: get_column_matches,
         Function: get_function_matches,
-        Schema: get_database_matches,
+        Schema: get_schema_matches,
         Table: get_table_matches,
+        TableFormat: get_table_formats,
         View: get_view_matches,
         Alias: get_alias_matches,
         Database: get_database_matches,
         Keyword: get_keyword_matches,
         Special: get_special_matches,
         Datatype: get_datatype_matches,
+        NamedQuery: get_namedquery_matches,
         Path: get_path_matches,
     }
 
     def populate_scoped_cols(self, scoped_tbls, local_tbls=()):
-        """ Find all columns in a set of scoped_tables
+        """Find all columns in a set of scoped_tables.
+
         :param scoped_tbls: list of TableReference namedtuples
         :param local_tbls: tuple(TableMetadata)
         :return: {TableReference:{colname:ColumnMetaData}}
+
         """
         ctes = dict((normalize_ref(t.name), t.columns) for t in local_tbls)
         columns = OrderedDict()
-        meta = self.metadata
+        meta = self.dbmetadata
 
         def addcols(schema, rel, alias, reltype, cols):
             tbl = TableReference(schema, rel, alias, reltype == 'functions')
@@ -738,8 +902,8 @@ class CHCompleter(Completer):
                 relname = self.escape_name(tbl.name)
                 schema = self.escape_name(schema)
                 if tbl.is_function:
-                    # Return column names from a set-returning function
-                    # Get an array of FunctionMetadata objects
+                # Return column names from a set-returning function
+                # Get an array of FunctionMetadata objects
                     functions = meta['functions'].get(schema, {}).get(relname)
                     for func in (functions or []):
                         # func is a FunctionMetadata object
@@ -756,10 +920,12 @@ class CHCompleter(Completer):
         return columns
 
     def _get_schemas(self, obj_typ, schema):
-        """ Returns a list of schemas from which to suggest objects
-        schema is the schema qualification input by the user (if any)
+        """Returns a list of schemas from which to suggest objects.
+
+        :param schema is the schema qualification input by the user (if any)
+
         """
-        metadata = self.metadata[obj_typ]
+        metadata = self.dbmetadata[obj_typ]
         if schema:
             schema = self.escape_name(schema)
             return [schema] if schema in metadata else []
@@ -769,26 +935,28 @@ class CHCompleter(Completer):
         return None if parent or schema in self.search_path else schema
 
     def populate_schema_objects(self, schema, obj_type):
-        """Returns a list of SchemaObjects representing tables, views, funcs
-        schema is the schema qualification input by the user (if any)
+        """Returns a list of SchemaObjects representing tables or views.
+
+        :param schema is the schema qualification input by the user (if any)
+
         """
 
         return [
             SchemaObject(
                 name=obj,
-                schema=(self._maybe_schema(schema=sch, parent=schema)),
-                function=(obj_type == 'functions')
+                schema=(self._maybe_schema(schema=sch, parent=schema))
             )
             for sch in self._get_schemas(obj_type, schema)
-            for obj in self.metadata[obj_type][sch].keys()
+            for obj in self.dbmetadata[obj_type][sch].keys()
         ]
 
     def populate_functions(self, schema, filter_func):
-        """Returns a list of function names
+        """Returns a list of function SchemaObjects.
 
-        filter_func is a function that accepts a FunctionMetadata namedtuple
-        and returns a boolean indicating whether that function should be
-        kept or discarded
+        :param filter_func is a function that accepts a FunctionMetadata
+        namedtuple and returns a boolean indicating whether that
+        function should be kept or discarded
+
         """
 
         # Because of multiple dispatch, we can have multiple functions
@@ -798,10 +966,10 @@ class CHCompleter(Completer):
             SchemaObject(
                 name=func,
                 schema=(self._maybe_schema(schema=sch, parent=schema)),
-                function=True
+                meta=meta
             )
             for sch in self._get_schemas('functions', schema)
-            for (func, metas) in self.metadata['functions'][sch].items()
+            for (func, metas) in self.dbmetadata['functions'][sch].items()
             for meta in metas
             if filter_func(meta)
         ]
