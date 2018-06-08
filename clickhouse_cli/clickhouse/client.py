@@ -131,7 +131,7 @@ class Client(object):
             stream=False,
         )
 
-    def query(self, query, data=None, fmt='PrettyCompactMonoBlock',
+    def query(self, query, data=None, fmt='PrettyCompact',
               stream=False, verbose=False, query_id=None, compress=False, **kwargs):
         query = sqlparse.format(query, strip_comments=True).rstrip(';')
         if verbose and self.cli_settings.get('show_formatted_query'):

@@ -5,7 +5,7 @@ host = 127.0.0.1
 port = 8123
 db = default
 user = default
-password = 
+password =
 
 # It's not secure to store the password here in plain text.
 
@@ -17,7 +17,7 @@ multiline = False
 timing = True
 
 # Preferred data format for the interactive mode
-format = PrettyCompactMonoBlock
+format = PrettyCompact
 
 # Preferred data format for the non-interactive mode (file/stdin)
 format_stdin = TabSeparated
@@ -49,7 +49,7 @@ conn_timeout_retry = 0
 conn_timeout_retry_delay = 0.5
 
 
-[settings]  
+[settings]
 # You can place the server-side settings here!
 
 # max_memory_usage = 20000000000

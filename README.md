@@ -1,6 +1,6 @@
 # clickhouse-cli
 
-An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex/) DBMS.  
+An unofficial command-line client for the [ClickHouse](https://clickhouse.yandex/) DBMS.
 It implements some common and awesome things, such as:
 
   - Autocompletion (work in progress)
@@ -24,9 +24,9 @@ Python 3.4+ is required.
 
     $ clickhouse-cli --help
     Usage: clickhouse-cli [OPTIONS] [SQLFILE]
-    
+
       A third-party client for the ClickHouse DBMS.
-    
+
     Options:
       -h, --host TEXT          Server host (hostname, or URL)
       -p, --port INTEGER       Server HTTP port
@@ -53,7 +53,7 @@ Python 3.4+ is required.
     port = 8123
     db = default
     user = default
-    password = 
+    password =
 
     # It's not secure to store the password here in plain text.
 
@@ -66,7 +66,7 @@ Python 3.4+ is required.
     timing = True
 
     # Preferred data format for the interactive mode
-    format = PrettyCompactMonoBlock
+    format = PrettyCompact
 
     # Preferred data format for the non-interactive mode (file/stdin)
     format_stdin = TabSeparated
@@ -81,7 +81,7 @@ Python 3.4+ is required.
     pager = False
 
 
-    [settings]  
+    [settings]
     # You can place the server-side settings here!
 
     # max_memory_usage = 20000000000
@@ -204,7 +204,7 @@ The order of precedence is:
     $ clickhouse-cli -q 'INSERT INTO test (date, s, i)' -F CSV data.csv
 
     Ok. Elapsed: 0.037 sec.
-    
+
     $ clickhouse-cli -q 'SELECT * FROM test'
     2017-01-01	hello	1
     2017-02-02	world	2
