@@ -134,7 +134,8 @@ class CLI:
         self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin')
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
         self.highlight = self.config.getboolean('main', 'highlight')
-        self.highlight_output = self.config.getboolean('main', 'highlight_output')
+        # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
+        self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
 
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
