@@ -1,7 +1,9 @@
+import ast
 import http.client
-import os
-import sys
 import json
+import os
+import re
+import sys
 import shutil
 
 from uuid import uuid4
@@ -137,6 +139,7 @@ class CLI:
         # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
+        self.udf = ast.literal_eval(self.config.get('main', 'udf').strip()) or {}
 
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
@@ -332,6 +335,12 @@ class CLI:
         response = ''
 
         self.progress_reset()
+
+        if self.udf:
+            for regex, replacement in self.udf.items():
+                query = re.sub(
+                    regex, replacement, query
+                )
 
         try:
             response = self.client.query(

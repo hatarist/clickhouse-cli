@@ -37,6 +37,34 @@ highlight_truecolor = True
 # Show the output via pager (if defined)
 pager = False
 
+# A  H O R R I B L E  "user-defined functions" hack
+# powered with regular expressions and a little bit of insanity!
+udf = {
+    # a very bad implementation of detecting the IP ranges from the CIDR notated subnet string
+    r'IPv4StringToRangeNum\((.*?)\)': r'''
+        [
+            toUInt32(IPv4StringToNum(extract(\1, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1),
+            toUInt32(IPv4StringToNum(extract(\1, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1 + (-bitShiftLeft(-1, 32 - toUInt32(extract(\1, '/(\\\\d+)$')))) - 3)
+        ]
+    ''',
+    #
+    # :) SELECT '192.168.0.0/16' network, IPv4StringToRangeString(network) netrange;
+    r'IPv4StringToRangeString\((.*?)\)': r'''
+        [
+            IPv4NumToString(toUInt32(IPv4StringToNum(extract(\1, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1)),
+            IPv4NumToString(toUInt32(IPv4StringToNum(extract(\1, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1 + (-bitShiftLeft(-1, 32 - toUInt32(extract(\1, '/(\\\\d+)$')))) - 3))
+        ]
+    ''',
+    #
+    # :) SELECT IPv4StringInNetwork('192.168.1.5', '192.168.1.0/28');
+    r'IPv4StringInNetwork\((.*?), (.*?)\)': r'''
+        IPv4StringToNum(\1) BETWEEN
+            toUInt32(IPv4StringToNum(extract(\2, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1)
+            AND
+            toUInt32(IPv4StringToNum(extract(\2, '(\\\\d+.\\\\d+.\\\\d+.\\\\d+)')) + 1 + (-bitShiftLeft(-1, 32 - toUInt32(extract(\2, '/(\\\\d+)$')))) - 3)
+    ''',
+    }
+
 [http]
 
 # Timeout for the connection to the ClickHouse HTTP server (in seconds)
