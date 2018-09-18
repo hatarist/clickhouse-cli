@@ -1,5 +1,6 @@
-import uuid
+import io
 import logging
+import uuid
 
 import requests
 import sqlparse
@@ -10,6 +11,7 @@ from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli import __version__
+from clickhouse_cli.helpers import chain_streams
 from clickhouse_cli.clickhouse.definitions import READ_QUERIES, FORMATTABLE_QUERIES
 from clickhouse_cli.clickhouse.exceptions import (
     DBException, ConnectionError, TimeoutError
@@ -82,7 +84,7 @@ class Client(object):
         self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
 
     def _query(self, method, query, extra_params, fmt, stream, data=None, compress=False, **kwargs):
-        params = {'query': query, 'session_id': self.session_id}
+        params = {'session_id': self.session_id}
         params.update(extra_params)
 
         headers = {'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT}
@@ -90,11 +92,20 @@ class Client(object):
             headers['Content-Encoding'] = 'gzip'
 
         response = None
+
+        if not query.endswith('\n'):
+            query += '\n'
+
+        streams = [io.BytesIO(query.encode())]
+        if data is not None:
+            streams.append(data)
+        data_stream = chain_streams(streams)
+
         try:
             response = self.session.request(
                 method,
                 self.url,
-                data=data,
+                data=data_stream,
                 params=params,
                 auth=(self.user, self.password),
                 stream=stream,
@@ -217,7 +228,7 @@ class Client(object):
         except ValueError:
             has_outfile = False
 
-        method = 'GET' if query_split[0].upper() in READ_QUERIES else 'POST'
+        method = 'POST'
         response = self._query(
             method,
             query,
