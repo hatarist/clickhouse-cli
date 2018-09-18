@@ -1,5 +1,7 @@
-import uuid
+import io
 import logging
+import time
+import uuid
 
 import requests
 import sqlparse
@@ -10,6 +12,7 @@ from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 from sqlparse.tokens import Keyword, Newline, Whitespace
 
 from clickhouse_cli import __version__
+from clickhouse_cli.helpers import chain_streams
 from clickhouse_cli.clickhouse.definitions import READ_QUERIES, FORMATTABLE_QUERIES
 from clickhouse_cli.clickhouse.exceptions import (
     DBException, ConnectionError, TimeoutError
@@ -82,7 +85,7 @@ class Client(object):
         self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
 
     def _query(self, method, query, extra_params, fmt, stream, data=None, compress=False, **kwargs):
-        params = {'query': query, 'session_id': self.session_id}
+        params = {'session_id': self.session_id}
         params.update(extra_params)
 
         headers = {'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT}
@@ -90,11 +93,20 @@ class Client(object):
             headers['Content-Encoding'] = 'gzip'
 
         response = None
+
+        if not query.endswith('\n'):
+            query += '\n'
+
+        streams = [io.BytesIO(query.encode())]
+        if data is not None:
+            streams.append(data)
+        data_stream = chain_streams(streams)
+
         try:
             response = self.session.request(
                 method,
                 self.url,
-                data=data,
+                data=data_stream,
                 params=params,
                 auth=(self.user, self.password),
                 stream=stream,
@@ -102,10 +114,10 @@ class Client(object):
                 timeout=(self.timeout, None),
                 **kwargs
             )
-        except requests.exceptions.ConnectTimeout:
-            raise TimeoutError
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError
+        except requests.exceptions.ConnectTimeout as e:
+            raise TimeoutError(*e.args) from e
+        except requests.exceptions.ConnectionError as e:
+            raise ConnectionError(*e.args) from e
 
         if response is not None and response.status_code != 200:
             raise DBException(response, query=query)
@@ -133,91 +145,97 @@ class Client(object):
 
     def query(self, query, data=None, fmt='PrettyCompact',
               stream=False, verbose=False, query_id=None, compress=False, **kwargs):
-        query = sqlparse.format(query, strip_comments=True).rstrip(';')
-        if verbose and self.cli_settings.get('show_formatted_query'):
-            # Highlight & reformat the SQL query
-            formatted_query = sqlparse.format(
-                query,
-                reindent_aligned=True,
-                indent_width=2,
-                # keyword_case='upper'  # works poorly in a few cases
-            )
+        if query.lstrip()[:6].upper().startswith('INSERT'):
+            query_split = query.split()
+        else:
+            query = sqlparse.format(query, strip_comments=True).rstrip(';')
 
-            formatter = TerminalFormatter()
-
-            if self.cli_settings.get('highlight') and self.cli_settings.get('highlight_truecolor'):
-                formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
-
-            print('\n' + pygments.highlight(
-                formatted_query,
-                CHLexer(),
-                formatter
-            ))
-
-        # TODO: use sqlparse's parser instead
-        query_split = query.split()
-
-        if not query_split:
-            return Response(query, fmt)
-
-        # Since sessions aren't supported over HTTP, we have to make some quirks:
-        # USE database;
-        if query_split[0].upper() == 'USE' and len(query_split) == 2:
-            old_database = self.database
-            self.database = query_split[1]
-            try:
-                self.test_query()
-            except DBException as e:
-                self.database = old_database
-                raise e
-
-            return Response(
-                query,
-                fmt,
-                message='Changed the current database to {0}.'.format(
-                    self.database
+            if verbose and self.cli_settings.get('show_formatted_query'):
+                # Highlight & reformat the SQL query
+                formatted_query = sqlparse.format(
+                    query,
+                    reindent_aligned=True,
+                    indent_width=2,
+                    # keyword_case='upper'  # works poorly in a few cases
                 )
-            )
 
-        # Set response format
-        if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
-            if query_split[-2].upper() == 'FORMAT':
-                fmt = query_split[-1]
-            elif query_split[-2].upper() != 'FORMAT':
-                if query_split[0].upper() != 'INSERT' or data is not None:
+                formatter = TerminalFormatter()
 
-                    if query[-2:] in (r'\g', r'\G'):
-                        query = query[:-2] + ' FORMAT Vertical'
-                    else:
-                        query = query + ' FORMAT {fmt}'.format(fmt=fmt)
+                if self.cli_settings.get('highlight') and self.cli_settings.get('highlight_truecolor'):
+                    formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
+
+                print('\n' + pygments.highlight(
+                    formatted_query,
+                    CHLexer(),
+                    formatter
+                ))
+
+            # TODO: use sqlparse's parser instead
+            query_split = query.split()
+
+            if not query_split:
+                return Response(query, fmt)
+
+            # Since sessions aren't supported over HTTP, we have to make some quirks:
+            # USE database;
+            if query_split[0].upper() == 'USE' and len(query_split) == 2:
+                old_database = self.database
+                self.database = query_split[1]
+                try:
+                    self.test_query()
+                except DBException as e:
+                    self.database = old_database
+                    raise e
+
+                return Response(
+                    query,
+                    fmt,
+                    message='Changed the current database to {0}.'.format(
+                        self.database
+                    )
+                )
+
+            # Set response format
+            if query_split[0].upper() in FORMATTABLE_QUERIES and len(query_split) >= 2:
+                if query_split[-2].upper() == 'FORMAT':
+                    fmt = query_split[-1]
+                elif query_split[-2].upper() != 'FORMAT':
+                    if query_split[0].upper() != 'INSERT' or data is not None:
+
+                        if query[-2:] in (r'\g', r'\G'):
+                            query = query[:-2] + ' FORMAT Vertical'
+                        else:
+                            query = query + ' FORMAT {fmt}'.format(fmt=fmt)
 
         params = {'database': self.database, 'stacktrace': int(self.stacktrace)}
         if query_id:
             params['query_id'] = query_id
 
-        # Detect INTO OUTFILE at the end of the query
-        t_query = [
-            t.value.upper() if t.ttype == Keyword else t.value
-            for t in sqlparse.parse(query)[0]
-            if t.ttype not in (Whitespace, Newline)
-        ]
+        has_outfile = False
+        if query_split[0].upper() == 'SELECT':
+            # Detect INTO OUTFILE at the end of the query
+            t_query = [
+                t.value.upper() if t.ttype == Keyword else t.value
+                for t in sqlparse.parse(query)[0]
+                if t.ttype not in (Whitespace, Newline)
+            ]
 
-        try:
-            last_tokens = t_query[-5:]
-            into_pos = last_tokens.index('INTO')
-            has_outfile = into_pos >= 0 and last_tokens.index('OUTFILE') == into_pos + 1
+            try:
+                last_tokens = t_query[-5:]
+                into_pos = last_tokens.index('INTO')
+                has_outfile = into_pos >= 0 and last_tokens.index('OUTFILE') == into_pos + 1
 
-            if has_outfile:
-                path = last_tokens[into_pos + 2].strip("'")
-                # Remove `INTO OUTFILE '/path/to/file.out'`
-                last_tokens.pop(into_pos)
-                last_tokens.pop(into_pos)
-                last_tokens.pop(into_pos)
-                query = ' '.join(t_query[:-5] + last_tokens)
-        except ValueError:
-            has_outfile = False
+                if has_outfile:
+                    path = last_tokens[into_pos + 2].strip("'")
+                    # Remove `INTO OUTFILE '/path/to/file.out'`
+                    last_tokens.pop(into_pos)
+                    last_tokens.pop(into_pos)
+                    last_tokens.pop(into_pos)
+                    query = ' '.join(t_query[:-5] + last_tokens)
+            except ValueError:
+                has_outfile = False
 
-        method = 'GET' if query_split[0].upper() in READ_QUERIES else 'POST'
+        method = 'POST'
         response = self._query(
             method,
             query,

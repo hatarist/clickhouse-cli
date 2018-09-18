@@ -2,6 +2,7 @@ import http.client
 import os
 import sys
 import json
+import time
 import shutil
 
 from uuid import uuid4
@@ -99,8 +100,8 @@ class CLI:
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return False
-        except ConnectionError:
-            self.echo.error("Error: Failed to connect.")
+        except ConnectionError as e:
+            self.echo.error("Error: Failed to connect. (%s)" % e)
             return False
         except DBException as e:
             self.echo.error("Error:")
@@ -200,7 +201,7 @@ class CLI:
             # clickhouse-cli -q 'SELECT 1'
             return self.handle_query(
                 query,
-                stream=True
+                stream=False
             )
 
         if data and query is not None:
@@ -352,8 +353,8 @@ class CLI:
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return
-        except ConnectionError:
-            self.echo.error("Error: Failed to connect.")
+        except ConnectionError as e:
+            self.echo.error("Error: Failed to connect. (%s)" % e)
             return
         except DBException as e:
             self.progress_reset()
