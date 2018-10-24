@@ -20,7 +20,7 @@ setup(
     ],
     install_requires=[
         'click>=6.6',
-        'prompt-toolkit>=1.0.8,<2.0',
+        'prompt-toolkit>=2.0',
         'pygments>=2.1.3',
         'requests>=2.11.1',
         'sqlparse>=0.2.2',
