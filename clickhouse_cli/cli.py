@@ -12,9 +12,13 @@ import click
 import pygments
 import sqlparse
 from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
-from prompt_toolkit import Application, CommandLineInterface
-from prompt_toolkit.layout.lexers import PygmentsLexer
-from prompt_toolkit.shortcuts import create_eventloop, create_prompt_layout
+from prompt_toolkit import Application, PromptSession
+from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
+from prompt_toolkit.shortcuts import prompt
+from prompt_toolkit.layout.containers import VSplit, Window
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+from prompt_toolkit.layout.layout import Layout
 
 import clickhouse_cli.helpers
 from clickhouse_cli import __version__
@@ -24,7 +28,7 @@ from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
 from clickhouse_cli.helpers import parse_headers_stream, sizeof_fmt, numberunit_fmt
 from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import (
-    CLIBuffer, KeyBinder, get_continuation_tokens, get_prompt_tokens
+    CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens
 )
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.config import read_config
@@ -213,36 +217,48 @@ class CLI:
 
             return
 
-        layout = create_prompt_layout(
-            lexer=PygmentsLexer(CHLexer) if self.highlight else None,
-            get_prompt_tokens=get_prompt_tokens,
-            get_continuation_tokens=get_continuation_tokens,
-            multiline=self.multiline,
-        )
-
         buffer = CLIBuffer(
             client=self.client,
             multiline=self.multiline,
             metadata=self.metadata,
         )
 
-        application = Application(
-            layout=layout,
-            buffer=buffer,
-            style=CHStyle if self.highlight else None,
-            key_bindings_registry=KeyBinder.registry,
+        root_container = Window(content=BufferControl(buffer=buffer))
+
+        layout = Layout(root_container)
+        # layout.focus(root_container)
+
+        # layout = prompt(
+        #     lexer=PygmentsLexer(CHLexer) if self.highlight else None,
+        #     # get_prompt_tokens=get_prompt_tokens,
+        #     # get_continuation_tokens=get_continuation_tokens,
+        #     multiline=self.multiline,
+        # )
+
+        self.session = PromptSession(
+            lexer=PygmentsLexer(CHLexer) if self.highlight else None,
+            message=get_prompt_tokens()[0][1],
+            prompt_continuation=get_continuation_tokens()[0][1],
         )
 
-        eventloop = create_eventloop()
+        self.app = Application(
+            layout=layout,
+            # buffer=buffer,
+            style=CHStyle if self.highlight else None,
+            key_bindings=kb,
+        )
 
-        self.cli = CommandLineInterface(application=application, eventloop=eventloop)
-        self.cli.application.buffer.completer.refresh_metadata()
+        # eventloop = create_eventloop()
+        use_asyncio_event_loop()
+
+        # self.cli = CommandLineInterface(application=application, eventloop=eventloop)
+        self.app.current_buffer.completer.refresh_metadata()
 
         try:
             while True:
                 try:
-                    cli_input = self.cli.run(reset_current_buffer=True)
-                    self.handle_input(cli_input.text)
+                    cli_input = self.session.prompt()
+                    self.handle_input(cli_input)
                 except KeyboardInterrupt:
                     # Attempt to terminate queries
                     for query_id in self.query_ids:
@@ -268,7 +284,7 @@ class CLI:
             self.handle_query(query, verbose=verbose, query_id=query_id, force_pager=force_pager)
 
         if refresh_metadata and input_data:
-            self.cli.application.buffer.completer.refresh_metadata()
+            self.app.current_buffer.completer.refresh_metadata()
 
     def handle_query(self, query, data=None, stream=False, verbose=False, query_id=None, compress=False, **kwargs):
         if query.rstrip(';') == '':
