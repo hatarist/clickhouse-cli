@@ -37,6 +37,15 @@ highlight_truecolor = True
 # Show the output via pager (if defined)
 pager = False
 
+# Refresh metadata (databases, tables, column names) for autocompletion...
+# on the application start
+refresh_metadata_on_start = True
+
+# after each query (if set to True, may slow down usage)
+refresh_metadata_on_query = False
+
+
+
 [http]
 
 # Timeout for the connection to the ClickHouse HTTP server (in seconds)

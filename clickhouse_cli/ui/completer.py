@@ -44,6 +44,11 @@ class CHCompleter(Completer):
 
         self.metadata = metadata
         self.metadata['all'] = set(KEYWORDS + FUNCTIONS)
+        self.metadata['databases'] = {}
+        self.metadata['tables'] = {}
+        self.metadata['views'] = {}
+        self.metadata['functions'] = {}
+        self.metadata['datatypes'] = DATATYPES
 
     def _select(self, query, flatten=True, *args, **kwargs):
         data = self.client.query(query, fmt='TabSeparated').data

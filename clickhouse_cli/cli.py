@@ -138,6 +138,9 @@ class CLI:
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
 
+        self.refresh_metadata_on_start = self.config.getboolean('main', 'refresh_metadata_on_start')
+        self.refresh_metadata_on_query = self.config.getboolean('main', 'refresh_metadata_on_query')
+
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
         self.conn_timeout_retry_delay = self.config.getfloat('http', 'conn_timeout_retry_delay')
@@ -177,6 +180,8 @@ class CLI:
                 'show_formatted_query': self.show_formatted_query,
                 'highlight': self.highlight,
                 'highlight_output': self.highlight_output,
+                'refresh_metadata_on_start': self.refresh_metadata_on_start,
+                'refresh_metadata_on_query': self.refresh_metadata_on_query,
             }
 
         if data and query is None:
@@ -236,13 +241,14 @@ class CLI:
         eventloop = create_eventloop()
 
         self.cli = CommandLineInterface(application=application, eventloop=eventloop)
-        self.cli.application.buffer.completer.refresh_metadata()
+        if self.refresh_metadata_on_start:
+            self.cli.application.buffer.completer.refresh_metadata()
 
         try:
             while True:
                 try:
                     cli_input = self.cli.run(reset_current_buffer=True)
-                    self.handle_input(cli_input.text)
+                    self.handle_input(cli_input.text, refresh_metadata=self.refresh_metadata_on_query)
                 except KeyboardInterrupt:
                     # Attempt to terminate queries
                     for query_id in self.query_ids:
