@@ -15,7 +15,7 @@ from clickhouse_cli.clickhouse.definitions import *
 from clickhouse_cli.ui.parseutils.helpers import (
     Special, Database, FromClauseItem, Table, View, JoinCondition, Join, Function, Column, Keyword,
     Datatype, Alias, Path, Schema, PrevalenceCounter, Match, SchemaObject, _Candidate, Candidate,
-    normalize_ref, generate_alias, suggest_type
+    Format, normalize_ref, generate_alias, suggest_type
 )
 
 
@@ -699,6 +699,14 @@ class CHCompleter(Completer):
             meta='datatype'
         )
 
+    def get_format_matches(self, suggestion, word_before_cursor):
+        return self.find_matches(
+            word_before_cursor,
+            FORMATS,
+            mode='strict',
+            meta='format'
+        )        
+
     suggestion_matchers = {
         FromClauseItem: get_from_clause_item_matches,
         JoinCondition: get_join_condition_matches,
@@ -713,6 +721,7 @@ class CHCompleter(Completer):
         Keyword: get_keyword_matches,
         Special: get_special_matches,
         Datatype: get_datatype_matches,
+        Format: get_format_matches,
         Path: get_path_matches,
     }
 

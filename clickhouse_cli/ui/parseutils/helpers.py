@@ -41,6 +41,7 @@ Column.__new__.__defaults__ = (None, None, tuple(), False)
 
 Keyword = namedtuple('Keyword', [])
 Datatype = namedtuple('Datatype', ['schema'])
+Format = namedtuple('Format', [])
 Alias = namedtuple('Alias', ['aliases'])
 
 Path = namedtuple('Path', [])
@@ -453,6 +454,8 @@ def suggest_based_on_last_token(token, stmt):
             return suggest_based_on_last_token(prev_keyword, stmt)
         else:
             return ()
+    elif token_v == 'format':
+        return (Format(),)
     elif token_v in ('type', '::'):
         #   ALTER TABLE foo SET DATA TYPE bar
         #   SELECT foo::bar
