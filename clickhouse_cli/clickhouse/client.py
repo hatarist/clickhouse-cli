@@ -116,7 +116,8 @@ class Client(object):
             )
         except requests.exceptions.ConnectTimeout as e:
             raise TimeoutError(*e.args) from e
-        except requests.exceptions.ConnectionError as e:
+        except (requests.exceptions.ConnectionError,
+            requests.packages.urllib3.exceptions.NewConnectionError) as e:
             raise ConnectionError(*e.args) from e
 
         if response is not None and response.status_code != 200:
