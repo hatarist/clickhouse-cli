@@ -1,13 +1,16 @@
+import ast
 import http.client
-import os
-import sys
 import json
+import os
+import re
+import sys
 import time
 import shutil
 
-from uuid import uuid4
-from urllib.parse import urlparse, parse_qs
+from configparser import NoOptionError
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
+from uuid import uuid4
 
 import click
 import pygments
@@ -138,6 +141,16 @@ class CLI:
         # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
+        
+        try:
+            udf = self.config.get('main', 'udf')
+        except NoOptionError:
+            udf = ''
+        
+        if udf:
+            self.udf = ast.literal_eval(udf.strip()) or {}
+        else:
+            self.udf = {}
 
         self.refresh_metadata_on_start = self.config.getboolean('main', 'refresh_metadata_on_start')
         self.refresh_metadata_on_query = self.config.getboolean('main', 'refresh_metadata_on_query')
@@ -340,6 +353,12 @@ class CLI:
 
         self.progress_reset()
 
+        if self.udf:
+            for regex, replacement in self.udf.items():
+                query = re.sub(
+                    regex, replacement, query
+                )
+
         try:
             response = self.client.query(
                 query,
@@ -408,7 +427,7 @@ class CLI:
                         formatter
                     ))
                 else:
-                    print_func(response.data)
+                    print_func(response.data, end='')
 
         if response.message != '':
             self.echo.print(response.message)

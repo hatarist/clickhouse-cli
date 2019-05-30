@@ -38,12 +38,26 @@ highlight_truecolor = True
 pager = False
 
 # Refresh metadata (databases, tables, column names) for autocompletion...
-# on the application start
+# ...on the application start
 refresh_metadata_on_start = True
 
-# after each query (if set to True, may slow down usage)
+# ...after each query (if set to True, may slow down usage)
 refresh_metadata_on_query = False
 
+
+# A horrible "user-defined functions" hack, powered with regexp and a little bit of insanity!
+# It makes the client find & replace queries to keep (or get on; it depends) your nerves.
+# It's commented out by default to not to enrage anyone. An example is provided below, though.
+
+#udf = {
+#        r'header\((.*?)\)': r'visitParamExtractString(headers, \1)',
+#	}
+
+# If you uncomment that above, please make sure that the trailing bracket is indented.
+# The example above will let you run such a query:
+# SELECT date, ip, visitParamExtractString(headers, 'User-Agent') FROM visits LIMIT 3;
+# with much less typing:
+# SELECT date, ip, header('User-Agent') FROM visits LIMIT 3;
 
 
 [http]

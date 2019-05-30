@@ -8,6 +8,7 @@ It implements some common and awesome things, such as:
   - Multiquery & multiline modes by default - paste anything as much as you want!
   - Pager support (`less`) for the data output
   - Custom, PostgreSQL-like commands like `\d+ table_name` or `\ps`. See `\?`
+  - [User-defined functions](#user-defined-functions)
 
 But it works over the HTTP port, so there are some limitations for now:
 
@@ -212,3 +213,27 @@ The order of precedence is:
 ### Custom settings
 
     $ clickhouse-cli -h 10.1.1.14 -s 'max_memory_usage=20000000000&enable_http_compression=1'
+
+### User-defined functions
+
+Oh boy. It's a **very dirty** (and **very untested**) hack that lets you define your own functions or, actually, whatever you want,
+by running a find & replace operation over the query before sending the query to the server.
+
+Say, you often run queries that parse some JSON, so you use `visitParamExtractString` all the time:
+
+     :) SELECT date, ip, visitParamExtractString(headers, 'User-Agent') AS ua FROM visits LIMIT 1;
+
+Even with autocompletion, this makes it harder to work with such queries.
+With this feature, you'll be able to create custom find & replace pairs to make things a little bit easier (or harder; it depends).  
+Put this in your `.clickhouse-cli.rc`:
+
+    udf = {
+            r'header\((.*?)\)': r'visitParamExtractString(headers, \1)',
+      }
+
+And rejoice!
+
+     :) SELECT date, ip, header('User-Agent') AS ua FROM visits LIMIT 1;
+
+The client will replace the matching expressions with another ones, and the query will execute correctly.
+See [.clickhouse-cli.rc](https://github.com/hatarist/clickhouse-cli/blob/master/clickhouse_cli/clickhouse-cli.rc.sample) for a full example.
