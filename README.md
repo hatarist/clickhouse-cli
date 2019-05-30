@@ -223,7 +223,7 @@ Say, you often run queries that parse some JSON, so you use `visitParamExtractSt
 
      :) SELECT date, ip, visitParamExtractString(headers, 'User-Agent') AS ua FROM visits LIMIT 1;
 
-Even with autocompletion, this makes it harder to work with such queries.
+Even with autocompletion, this makes it harder to work with such queries.  
 With this feature, you'll be able to create custom find & replace pairs to make things a little bit easier (or harder; it depends).  
 Put this in your `.clickhouse-cli.rc`:
 
