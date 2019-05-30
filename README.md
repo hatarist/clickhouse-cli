@@ -235,5 +235,5 @@ And rejoice!
 
      :) SELECT date, ip, header('User-Agent') AS ua FROM visits LIMIT 1;
 
-The client will replace the matching expressions with another ones, and the query will execute correctly.
+The client will replace the matching expressions with another ones, and the query will execute correctly.  
 See [.clickhouse-cli.rc](https://github.com/hatarist/clickhouse-cli/blob/master/clickhouse_cli/clickhouse-cli.rc.sample) for a full example.
