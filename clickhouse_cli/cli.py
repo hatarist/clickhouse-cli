@@ -121,7 +121,7 @@ class CLI:
             return False
 
         version = response.data.strip().split('.')
-        self.server_version = (int(version[0]), int(version[1]), int(version[2]))
+        self.server_version = (int(version[0]), int(version[1]), version[2])
 
         self.echo.success(
             "Connected to ClickHouse server v{0}.{1}.{2}.\n".format(
