@@ -461,7 +461,7 @@ class CLI:
         progress = {
             'timestamp': now,
             'read_rows': int(progress['read_rows']),
-            'total_rows': int(progress['total_rows']),
+            'total_rows': int(progress['total_rows'] if 'total_rows' in progress else progress['total_rows_to_read']),
             'read_bytes': int(progress['read_bytes']),
         }
         # Calculate percentage completed and format initial message
