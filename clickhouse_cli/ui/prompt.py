@@ -1,19 +1,29 @@
 import os
-
-from prompt_toolkit.buffer import AcceptAction, Buffer
+ 
+from prompt_toolkit.application import get_app
+from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER, SEARCH_BUFFER
 from prompt_toolkit.filters import Condition, HasFocus
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding.manager import KeyBindingManager
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.token import Token
+from pygments.token import Token
+# from prompt_toolkit.formatted_text import PygmentsTokens
 
 from clickhouse_cli.clickhouse.definitions import INTERNAL_COMMANDS
 from clickhouse_cli.ui.completer import CHCompleter
 
 
-KeyBinder = KeyBindingManager.for_prompt()
+kb = KeyBindings()
 
+
+
+def is_multiline(pgcli):
+    @Condition
+    def cond():
+        return pgcli.multiline
+    return cond
 
 class CLIBuffer(Buffer):
 
@@ -26,6 +36,9 @@ class CLIBuffer(Buffer):
             text = self.document.text
             return not query_is_finished(text, multiline)
 
+        # def accept(buff):
+        #     buff.document = Document(text=self.document.text, cursor_position=len(self.document.text))
+
         super(CLIBuffer, self).__init__(
             *args,
             completer=CHCompleter(client, metadata),
@@ -33,8 +46,8 @@ class CLIBuffer(Buffer):
                 filename=os.path.expanduser('~/.clickhouse-cli_history')
             ),
             enable_history_search=True,
-            accept_action=AcceptAction.RETURN_DOCUMENT,
-            is_multiline=is_multiline,
+            # accept_handler=accept,
+            multiline=is_multiline,
             **kwargs
         )
 
@@ -48,30 +61,48 @@ def query_is_finished(text, multiline=False):
     )
 
 
-def get_prompt_tokens(cli):
+def get_prompt_tokens(*args):
     return [
         (Token.Prompt, ' :) '),
     ]
 
 
-def get_continuation_tokens(cli, width):
+def get_continuation_tokens(*args):
     return [(Token.Prompt, '  ] ')]
 
 
-@KeyBinder.registry.add_binding(Keys.ControlC, filter=HasFocus(DEFAULT_BUFFER))
+@kb.add(Keys.ControlC, filter=HasFocus(DEFAULT_BUFFER))
 def reset_buffer(event):
-    buffer = event.current_buffer
+    buffer = event.app.current_buffer
     if buffer.complete_state:
         buffer.cancel_completion()
     else:
         buffer.reset()
 
 
-@KeyBinder.registry.add_binding(Keys.ControlC, filter=HasFocus(SEARCH_BUFFER))
+@kb.add(Keys.ControlC, filter=HasFocus(SEARCH_BUFFER))
 def reset_search_buffer(event):
-    if event.current_buffer.document.text:
-        event.current_buffer.reset()
+    buffer = event.app.current_buffer
+    if buffer.document.text:
+        buffer.reset()
     else:
         event.cli.push_focus(DEFAULT_BUFFER)
 
 
+@kb.add('tab')
+def autocomplete(event):
+    """Force autocompletion at cursor."""
+    buffer = event.app.current_buffer
+    if buffer.complete_state:
+        buffer.complete_next()
+    else:
+        buffer.start_completion(select_first=True)
+
+
+@kb.add('c-space')
+def autocomplete_ctrl_space(event):
+    buffer = event.app.current_buffer
+    if buffer.complete_state:
+        buffer.complete_next()
+    else:
+        buffer.start_completion(select_first=False)
