@@ -221,20 +221,20 @@ class Client(object):
                 if t.ttype not in (Whitespace, Newline)
             ]
 
-        try:
-            last_tokens = t_query[-5:]
-            into_pos = last_tokens.index('INTO')
-            has_outfile = into_pos >= 0 and last_tokens.index('OUTFILE') == into_pos + 1
+            try:
+                last_tokens = t_query[-5:]
+                into_pos = last_tokens.index('INTO')
+                has_outfile = into_pos >= 0 and last_tokens.index('OUTFILE') == into_pos + 1
 
-            if has_outfile:
-                path = last_tokens[into_pos + 2].strip("'")
-                # Remove `INTO OUTFILE '/path/to/file.out'`
-                last_tokens.pop(into_pos)
-                last_tokens.pop(into_pos)
-                last_tokens.pop(into_pos)
-                query = ' '.join(t_query[:-5] + last_tokens)
-        except ValueError:
-            has_outfile = False
+                if has_outfile:
+                    path = last_tokens[into_pos + 2].strip("'")
+                    # Remove `INTO OUTFILE '/path/to/file.out'`
+                    last_tokens.pop(into_pos)
+                    last_tokens.pop(into_pos)
+                    last_tokens.pop(into_pos)
+                    query = ' '.join(t_query[:-5] + last_tokens)
+            except ValueError:
+                has_outfile = False
 
 
         method = 'POST'
