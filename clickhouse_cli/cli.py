@@ -272,7 +272,7 @@ class CLI:
         
         #self.cli = CommandLineInterface(application=application, eventloop=eventloop)
         if self.refresh_metadata_on_start:
-            self.cli.application.buffer.completer.refresh_metadata()
+            self.app.current_buffer.completer.refresh_metadata()
 
         try:
             while True:
