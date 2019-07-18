@@ -1,12 +1,16 @@
+import ast
 import http.client
-import os
-import sys
 import json
+import os
+import re
+import sys
+import time
 import shutil
 
-from uuid import uuid4
-from urllib.parse import urlparse, parse_qs
+from configparser import NoOptionError
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
+from uuid import uuid4
 
 import click
 import pygments
@@ -103,8 +107,8 @@ class CLI:
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return False
-        except ConnectionError:
-            self.echo.error("Error: Failed to connect.")
+        except ConnectionError as e:
+            self.echo.error("Error: Failed to connect. (%s)" % e)
             return False
         except DBException as e:
             self.echo.error("Error:")
@@ -121,7 +125,7 @@ class CLI:
             return False
 
         version = response.data.strip().split('.')
-        self.server_version = (int(version[0]), int(version[1]), int(version[2]))
+        self.server_version = (int(version[0]), int(version[1]), version[2])
 
         self.echo.success(
             "Connected to ClickHouse server v{0}.{1}.{2}.\n".format(
@@ -141,6 +145,19 @@ class CLI:
         # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
+        
+        try:
+            udf = self.config.get('main', 'udf')
+        except NoOptionError:
+            udf = ''
+        
+        if udf:
+            self.udf = ast.literal_eval(udf.strip()) or {}
+        else:
+            self.udf = {}
+
+        self.refresh_metadata_on_start = self.config.getboolean('main', 'refresh_metadata_on_start')
+        self.refresh_metadata_on_query = self.config.getboolean('main', 'refresh_metadata_on_query')
 
         self.conn_timeout = self.config.getfloat('http', 'conn_timeout')
         self.conn_timeout_retry = self.config.getint('http', 'conn_timeout_retry')
@@ -181,6 +198,8 @@ class CLI:
                 'show_formatted_query': self.show_formatted_query,
                 'highlight': self.highlight,
                 'highlight_output': self.highlight_output,
+                'refresh_metadata_on_start': self.refresh_metadata_on_start,
+                'refresh_metadata_on_query': self.refresh_metadata_on_query,
             }
 
         if data and query is None:
@@ -199,7 +218,7 @@ class CLI:
             # clickhouse-cli -q 'SELECT 1'
             return self.handle_query(
                 query,
-                stream=True
+                stream=False
             )
 
         if data and query is not None:
@@ -250,9 +269,10 @@ class CLI:
 
         # eventloop = create_eventloop()
         use_asyncio_event_loop()
-
-        # self.cli = CommandLineInterface(application=application, eventloop=eventloop)
-        self.app.current_buffer.completer.refresh_metadata()
+        
+        #self.cli = CommandLineInterface(application=application, eventloop=eventloop)
+        if self.refresh_metadata_on_start:
+            self.cli.application.buffer.completer.refresh_metadata()
 
         try:
             while True:
@@ -349,6 +369,12 @@ class CLI:
 
         self.progress_reset()
 
+        if self.udf:
+            for regex, replacement in self.udf.items():
+                query = re.sub(
+                    regex, replacement, query
+                )
+
         try:
             response = self.client.query(
                 query,
@@ -362,8 +388,8 @@ class CLI:
         except TimeoutError:
             self.echo.error("Error: Connection timeout.")
             return
-        except ConnectionError:
-            self.echo.error("Error: Failed to connect.")
+        except ConnectionError as e:
+            self.echo.error("Error: Failed to connect. (%s)" % e)
             return
         except DBException as e:
             self.progress_reset()
@@ -417,7 +443,7 @@ class CLI:
                         formatter
                     ))
                 else:
-                    print_func(response.data)
+                    print_func(response.data, end='')
 
         if response.message != '':
             self.echo.print(response.message)
@@ -451,7 +477,7 @@ class CLI:
         progress = {
             'timestamp': now,
             'read_rows': int(progress['read_rows']),
-            'total_rows': int(progress['total_rows']),
+            'total_rows': int(progress['total_rows'] if 'total_rows' in progress else progress['total_rows_to_read']),
             'read_bytes': int(progress['read_bytes']),
         }
         # Calculate percentage completed and format initial message
