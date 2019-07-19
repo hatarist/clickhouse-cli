@@ -23,6 +23,7 @@ from prompt_toolkit.shortcuts import prompt
 from prompt_toolkit.layout.containers import VSplit, Window
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.history import FileHistory
 
 import clickhouse_cli.helpers
 from clickhouse_cli import __version__
@@ -254,10 +255,16 @@ class CLI:
         #     multiline=self.multiline,
         # )
 
+        hist = FileHistory(
+                filename=os.path.expanduser('~/.clickhouse-cli_history')
+            )
+
         self.session = PromptSession(
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
+            multiline=self.multiline,
+            history=hist
         )
 
         self.app = Application(

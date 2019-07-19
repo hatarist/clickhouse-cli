@@ -5,7 +5,6 @@ from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER, SEARCH_BUFFER
 from prompt_toolkit.filters import Condition, HasFocus
-from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from pygments.token import Token
@@ -36,17 +35,10 @@ class CLIBuffer(Buffer):
             text = self.document.text
             return not query_is_finished(text, multiline)
 
-        # def accept(buff):
-        #     buff.document = Document(text=self.document.text, cursor_position=len(self.document.text))
-
         super(CLIBuffer, self).__init__(
             *args,
             completer=CHCompleter(client, metadata),
-            history=FileHistory(
-                filename=os.path.expanduser('~/.clickhouse-cli_history')
-            ),
             enable_history_search=True,
-            # accept_handler=accept,
             multiline=is_multiline,
             **kwargs
         )
