@@ -24,6 +24,8 @@ from prompt_toolkit.layout.containers import VSplit, Window
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.completion import DynamicCompleter, ThreadedCompleter
+
 
 import clickhouse_cli.helpers
 from clickhouse_cli import __version__
@@ -36,6 +38,7 @@ from clickhouse_cli.ui.prompt import (
     CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens
 )
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
+from clickhouse_cli.ui.completer import CHCompleter
 from clickhouse_cli.config import read_config
 
 # monkey-patch sqlparse
@@ -258,7 +261,8 @@ class CLI:
         hist = FileHistory(
                 filename=os.path.expanduser('~/.clickhouse-cli_history')
             )
-
+        self.completer = CHCompleter(self.client, self.metadata)
+        
         self.session = PromptSession(
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             message=get_prompt_tokens()[0][1],
@@ -266,6 +270,8 @@ class CLI:
             multiline=self.multiline,
             history=hist,
             key_bindings=kb,
+            completer=ThreadedCompleter(
+                    DynamicCompleter(lambda: self.completer)),
         )
 
         self.app = Application(
