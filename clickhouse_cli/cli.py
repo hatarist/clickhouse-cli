@@ -264,14 +264,14 @@ class CLI:
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
             multiline=self.multiline,
-            history=hist
+            history=hist,
+            key_bindings=kb,
         )
 
         self.app = Application(
             layout=layout,
             # buffer=buffer,
             style=CHStyle if self.highlight else None,
-            key_bindings=kb,
         )
 
         # eventloop = create_eventloop()
