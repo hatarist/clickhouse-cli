@@ -236,7 +236,6 @@ class Client(object):
             except ValueError:
                 has_outfile = False
 
-
         method = 'POST'
         response = self._query(
             method,
