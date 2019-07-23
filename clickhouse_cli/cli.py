@@ -20,8 +20,8 @@ from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
 from prompt_toolkit.shortcuts import prompt
-from prompt_toolkit.layout.containers import VSplit, Window
-from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+from prompt_toolkit.layout.containers import Window
+from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.completion import DynamicCompleter, ThreadedCompleter
