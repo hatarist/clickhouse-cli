@@ -5,8 +5,7 @@ from pygments.token import (
     Keyword, Name, Comment, String, Error,
     Number, Operator, Generic, Token, Whitespace
 )
-# from prompt_toolkit.token import Token as PTToken
-from prompt_toolkit.styles import style_from_pygments
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
 
 
 RED = "#cb0f1e"
@@ -65,7 +64,7 @@ class CHPygmentsStyle(Style):
     }
 
 
-CHStyle = style_from_pygments(CHPygmentsStyle)
+CHStyle = style_from_pygments_cls(CHPygmentsStyle)
 
 
 class Echo(object):

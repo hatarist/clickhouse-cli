@@ -3,8 +3,7 @@ import operator
 from itertools import count
 from collections import namedtuple, defaultdict, OrderedDict
 
-from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.contrib.completers import PathCompleter
+from prompt_toolkit.completion import Completer, Completion, PathCompleter
 from prompt_toolkit.document import Document
 
 from clickhouse_cli.ui.parseutils.meta import ColumnMetadata, ForeignKey
