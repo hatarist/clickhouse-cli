@@ -264,6 +264,7 @@ class CLI:
         self.completer = CHCompleter(self.client, self.metadata)
         
         self.session = PromptSession(
+            style=CHStyle if self.highlight else None,
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
@@ -277,7 +278,6 @@ class CLI:
         self.app = Application(
             layout=layout,
             # buffer=buffer,
-            style=CHStyle if self.highlight else None,
         )
 
         # eventloop = create_eventloop()

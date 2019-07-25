@@ -1,11 +1,12 @@
 from click import secho, echo_via_pager
 
+from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.style import Style
 from pygments.token import (
     Keyword, Name, Comment, String, Error,
     Number, Operator, Generic, Token, Whitespace
 )
-from prompt_toolkit.styles.pygments import style_from_pygments_cls
+from pygments.styles import get_style_by_name
 
 
 RED = "#cb0f1e"
@@ -64,6 +65,8 @@ class CHPygmentsStyle(Style):
     }
 
 
+# TODO: make it an option to switch color schemes
+# CHPygmentsStyle = get_style_by_name('monokai')
 CHStyle = style_from_pygments_cls(CHPygmentsStyle)
 
 
