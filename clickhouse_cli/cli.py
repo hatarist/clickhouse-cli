@@ -149,6 +149,7 @@ class CLI:
         # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
+        self.complete_while_typing = self.config.getboolean('main', 'complete_while_typing')
         
         try:
             udf = self.config.get('main', 'udf')
@@ -271,6 +272,7 @@ class CLI:
             multiline=self.multiline,
             history=hist,
             key_bindings=kb,
+            complete_while_typing=self.complete_while_typing,
             completer=ThreadedCompleter(
                     DynamicCompleter(lambda: self.completer)),
         )
@@ -370,9 +372,9 @@ class CLI:
 
         elif query.startswith(r'\ps'):
             query = (
-                "SELECT query_id, user, address, elapsed, {}, memory_usage "
+                "SELECT query_id, user, address, elapsed, read_rows, memory_usage "
                 "FROM system.processes WHERE query_id != '{}'"
-            ).format('read_rows' if self.server_version[2] >= 54115 else 'rows_read', query_id)
+            ).format(query_id)
 
         elif query.startswith(r'\kill '):
             self.client.kill_query(query[6:])

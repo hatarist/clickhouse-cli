@@ -34,6 +34,9 @@ highlight_output = True
 # Syntax highlighting in TrueColor (if supported, see https://gist.github.com/XVilka/8346728)
 highlight_truecolor = True
 
+# if True, enables completion on every typed character (i.e. space)
+complete_while_typing = False
+
 # Show the output via pager (if defined)
 pager = False
 
