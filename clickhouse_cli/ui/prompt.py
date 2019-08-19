@@ -1,5 +1,5 @@
 import os
- 
+
 from prompt_toolkit.application import get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
@@ -17,29 +17,27 @@ from clickhouse_cli.ui.completer import CHCompleter
 kb = KeyBindings()
 
 
-
-def is_multiline(pgcli):
+def is_multiline(multiline):
     @Condition
     def cond():
-        return pgcli.multiline
+        doc = get_app().layout.get_buffer_by_name(DEFAULT_BUFFER).document
+        if not multiline:
+            return False
+        else:
+            return not query_is_finished(doc.text)
+
     return cond
+
 
 class CLIBuffer(Buffer):
 
     def __init__(self, client, multiline, metadata, *args, **kwargs):
-        @Condition
-        def is_multiline():
-            if not multiline:
-                return False
-
-            text = self.document.text
-            return not query_is_finished(text, multiline)
-
         super(CLIBuffer, self).__init__(
             *args,
             completer=CHCompleter(client, metadata),
             enable_history_search=True,
-            multiline=is_multiline,
+            # doesn't seem to have any effect on prompt_toolkit 2.x's PromptSession
+            # multiline=is_multiline(multiline),
             **kwargs
         )
 

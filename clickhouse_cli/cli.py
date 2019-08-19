@@ -35,7 +35,7 @@ from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
 from clickhouse_cli.helpers import parse_headers_stream, sizeof_fmt, numberunit_fmt
 from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import (
-    CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens
+    CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens, is_multiline
 )
 from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
 from clickhouse_cli.ui.completer import CHCompleter
@@ -141,7 +141,7 @@ class CLI:
     def load_config(self):
         self.config = read_config()
 
-        self.multiline = self.config.getboolean('main', 'multiline')
+        self.multiline = self.multiline or self.config.getboolean('main', 'multiline')
         self.format = self.format or self.config.get('main', 'format')
         self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin')
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
@@ -150,12 +150,12 @@ class CLI:
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
         self.complete_while_typing = self.config.getboolean('main', 'complete_while_typing')
-        
+
         try:
             udf = self.config.get('main', 'udf')
         except NoOptionError:
             udf = ''
-        
+
         if udf:
             self.udf = ast.literal_eval(udf.strip()) or {}
         else:
@@ -263,13 +263,13 @@ class CLI:
                 filename=os.path.expanduser('~/.clickhouse-cli_history')
             )
         self.completer = CHCompleter(self.client, self.metadata)
-        
+
         self.session = PromptSession(
             style=CHStyle if self.highlight else None,
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
-            multiline=self.multiline,
+            multiline=is_multiline(self.multiline),
             history=hist,
             key_bindings=kb,
             complete_while_typing=self.complete_while_typing,
@@ -284,7 +284,7 @@ class CLI:
 
         # eventloop = create_eventloop()
         use_asyncio_event_loop()
-        
+
         #self.cli = CommandLineInterface(application=application, eventloop=eventloop)
         if self.refresh_metadata_on_start:
             self.app.current_buffer.completer.refresh_metadata()
