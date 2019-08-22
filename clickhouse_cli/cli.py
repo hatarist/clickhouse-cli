@@ -538,7 +538,8 @@ class CLI:
 @click.option('--host', '-h', help="Server host, set to https://<host>:<port> if you want to use HTTPS")
 @click.option('--port', '-p', type=click.INT, help="Server HTTP/HTTPS port")
 @click.option('--user', '-u', help="User")
-@click.option('--password', '-P', is_flag=True, help="Password")
+@click.option('--password', '-P', is_flag=True, help="Ask for a password in STDIN")
+@click.option('--arg-password', '-B', help="Argument as a password")
 @click.option('--database', '-d', help="Database")
 @click.option('--settings', '-s', help="Query string to be sent with every query")
 @click.option('--query', '-q', help="Query to execute")
@@ -548,7 +549,7 @@ class CLI:
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('files', nargs=-1, type=click.File('rb'))
-def run_cli(host, port, user, password, database, settings, query, format,
+def run_cli(host, port, user, password, arg_password, database, settings, query, format,
             format_stdin, multiline, stacktrace, version, files):
     """
     A third-party client for the ClickHouse DBMS.
@@ -556,7 +557,9 @@ def run_cli(host, port, user, password, database, settings, query, format,
     if version:
         return show_version()
 
-    if password:
+    if arg_password:
+        password = arg_password
+    elif password:
         password = click.prompt("Password", hide_input=True, show_default=False, type=str)
 
     data_input = ()
