@@ -13,6 +13,13 @@ password =
 # Disable multiline mode by default
 multiline = False
 
+# Disable Vi mode by default
+#
+# Ideally, we want to read this value from `inputrc`, but this isn't possible
+# until https://github.com/prompt-toolkit/python-prompt-toolkit/issues/56 is
+# resolved.
+vi_mode = False
+
 # Show SQL statements timing
 timing = True
 
