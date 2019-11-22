@@ -745,7 +745,7 @@ AGGREGATION_FUNCTIONS = (
     tuple(name + 'Array' for name in AGGREGATION_FUNCTIONS_BASE) +
     tuple(name + 'Merge' for name in AGGREGATION_FUNCTIONS_BASE) +
     tuple(name + 'State' for name in AGGREGATION_FUNCTIONS_BASE) +
-    tuple(name + 'MergeState' for name in AGGREGATION_FUNCTIONS_BASE) + 
+    tuple(name + 'MergeState' for name in AGGREGATION_FUNCTIONS_BASE) +
     tuple(name + 'forEach' for name in AGGREGATION_FUNCTIONS_BASE)
 )
 
@@ -826,6 +826,7 @@ READ_QUERIES = (
     'DESCRIBE',
     'USE',
     'EXISTS',
+    'WITH',
 )
 
 WRITE_QUERIES = (
@@ -843,6 +844,7 @@ WRITE_QUERIES = (
 FORMATTABLE_QUERIES = (
     'INSERT',
     'SELECT',
+    'WITH',
     'SHOW',
     'DESC',
     'DESCRIBE',
