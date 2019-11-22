@@ -58,7 +58,8 @@ def show_version():
 class CLI:
 
     def __init__(self, host, port, user, password, database,
-                 settings, format, format_stdin, multiline, stacktrace):
+                 settings, format, format_stdin, multiline, stacktrace,
+                 vi_mode):
         self.config = None
 
         self.host = host
@@ -71,6 +72,7 @@ class CLI:
         self.format_stdin = format_stdin
         self.multiline = multiline
         self.stacktrace = stacktrace
+        self.vi_mode = vi_mode
         self.server_version = None
 
         self.query_ids = []
@@ -142,6 +144,7 @@ class CLI:
         self.config = read_config()
 
         self.multiline = self.multiline or self.config.getboolean('main', 'multiline')
+        self.vi_mode = self.vi_mode or self.config.getboolean('main', 'vi_mode')
         self.format = self.format or self.config.get('main', 'format')
         self.format_stdin = self.format_stdin or self.config.get('main', 'format_stdin')
         self.show_formatted_query = self.config.getboolean('main', 'show_formatted_query')
@@ -198,6 +201,7 @@ class CLI:
             self.client.settings = self.settings
             self.client.cli_settings = {
                 'multiline': self.multiline,
+                'vi_mode': self.vi_mode,
                 'format': self.format,
                 'format_stdin': self.format_stdin,
                 'show_formatted_query': self.show_formatted_query,
@@ -270,6 +274,7 @@ class CLI:
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
             multiline=is_multiline(self.multiline),
+            vi_mode=self.vi_mode,
             history=hist,
             key_bindings=kb,
             complete_while_typing=self.complete_while_typing,
@@ -547,10 +552,11 @@ class CLI:
 @click.option('--format-stdin', '-F', help="Data format for stdin/file queries")
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
+@click.option('--vi-mode', is_flag=True, help="Enable Vi input mode")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('files', nargs=-1, type=click.File('rb'))
 def run_cli(host, port, user, password, arg_password, database, settings, query, format,
-            format_stdin, multiline, stacktrace, version, files):
+            format_stdin, multiline, stacktrace, vi_mode, version, files):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -575,7 +581,7 @@ def run_cli(host, port, user, password, arg_password, database, settings, query,
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
-        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace
+        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode
     )
     cli.run(query, data_input)
 
