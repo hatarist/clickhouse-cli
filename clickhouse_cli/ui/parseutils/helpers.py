@@ -3,6 +3,7 @@ from collections import namedtuple, defaultdict
 
 import sqlparse
 from sqlparse.sql import Comparison, Identifier, Where
+from sqlparse.tokens import Name
 from clickhouse_cli.ui.parseutils.tables import TableReference
 from clickhouse_cli.ui.parseutils.utils import (
     last_word, find_prev_keyword, parse_partial_identifier)
