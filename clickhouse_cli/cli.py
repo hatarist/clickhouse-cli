@@ -16,10 +16,10 @@ import click
 import pygments
 import sqlparse
 from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
+
+
 from prompt_toolkit import Application, PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
-from prompt_toolkit.eventloop.defaults import use_asyncio_event_loop
-from prompt_toolkit.shortcuts import prompt
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.layout.layout import Layout
@@ -286,9 +286,6 @@ class CLI:
             layout=layout,
             # buffer=buffer,
         )
-
-        # eventloop = create_eventloop()
-        use_asyncio_event_loop()
 
         #self.cli = CommandLineInterface(application=application, eventloop=eventloop)
         if self.refresh_metadata_on_start:
