@@ -59,7 +59,7 @@ class CLI:
 
     def __init__(self, host, port, user, password, database,
                  settings, format, format_stdin, multiline, stacktrace,
-                 vi_mode):
+                 vi_mode, cookie):
         self.config = None
 
         self.host = host
@@ -73,6 +73,7 @@ class CLI:
         self.multiline = multiline
         self.stacktrace = stacktrace
         self.vi_mode = vi_mode
+        self.cookie = cookie
         self.server_version = None
 
         self.query_ids = []
@@ -95,6 +96,7 @@ class CLI:
             self.user,
             self.password,
             self.database,
+            self.cookie,
             self.stacktrace,
             self.conn_timeout,
             self.conn_timeout_retry,
@@ -550,10 +552,11 @@ class CLI:
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--vi-mode', is_flag=True, help="Enable Vi input mode")
+@click.option('--cookie', '-c', help="Cookie header to be sent with every query")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('files', nargs=-1, type=click.File('rb'))
 def run_cli(host, port, user, password, arg_password, database, settings, query, format,
-            format_stdin, multiline, stacktrace, vi_mode, version, files):
+            format_stdin, multiline, stacktrace, vi_mode, cookie, version, files):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -578,7 +581,7 @@ def run_cli(host, port, user, password, arg_password, database, settings, query,
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
-        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode
+        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode, cookie
     )
     cli.run(query, data_input)
 
