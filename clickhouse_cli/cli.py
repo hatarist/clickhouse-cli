@@ -67,13 +67,13 @@ class CLI:
         self.user = user
         self.password = password
         self.database = database
+        self.cookie = cookie
         self.settings = {k: v[0] for k, v in parse_qs(settings).items()}
         self.format = format
         self.format_stdin = format_stdin
         self.multiline = multiline
         self.stacktrace = stacktrace
         self.vi_mode = vi_mode
-        self.cookie = cookie
         self.server_version = None
 
         self.query_ids = []
@@ -178,6 +178,7 @@ class CLI:
         self.user = self.user or os.environ.get('CLICKHOUSE_USER', '') or self.config.get('defaults', 'user') or 'default'
         self.password = self.password or os.environ.get('CLICKHOUSE_PASSWORD', '') or self.config.get('defaults', 'password')
         self.database = self.database or os.environ.get('CLICKHOUSE_DATABASE', '') or self.config.get('defaults', 'db') or 'default'
+        self.cookie = self.cookie or os.environ.get('CLICKHOUSE_COOKIE', '') or self.config.get('defaults', 'cookie')
 
         config_settings = dict(self.config.items('settings'))
         arg_settings = self.settings
@@ -546,13 +547,13 @@ class CLI:
 @click.option('--arg-password', '-B', help="Argument as a password")
 @click.option('--database', '-d', help="Database")
 @click.option('--settings', '-s', help="Query string to be sent with every query")
+@click.option('--cookie', '-c', help="Cookie header to be sent with every query")
 @click.option('--query', '-q', help="Query to execute")
 @click.option('--format', '-f', help="Data format for the interactive mode")
 @click.option('--format-stdin', '-F', help="Data format for stdin/file queries")
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
 @click.option('--stacktrace', is_flag=True, help="Print stacktraces received from the server.")
 @click.option('--vi-mode', is_flag=True, help="Enable Vi input mode")
-@click.option('--cookie', '-c', help="Cookie header to be sent with every query")
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('files', nargs=-1, type=click.File('rb'))
 def run_cli(host, port, user, password, arg_password, database, settings, query, format,

@@ -6,6 +6,7 @@ port = 8123
 db = default
 user = default
 password =
+cookie =
 
 # It's not secure to store the password here in plain text.
 
