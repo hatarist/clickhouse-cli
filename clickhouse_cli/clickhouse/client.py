@@ -65,12 +65,13 @@ class Response(object):
 
 class Client(object):
 
-    def __init__(self, url, user, password, database, stacktrace=False, timeout=10.0,
+    def __init__(self, url, user, password, database, cookie, stacktrace=False, timeout=10.0,
                  timeout_retry=0, timeout_retry_delay=0.0):
         self.url = url
         self.user = user
         self.password = password or ''
         self.database = database
+        self.cookie = cookie
         self.session_id = str(uuid.uuid4())
         self.cli_settings = {}
         self.stacktrace = stacktrace
@@ -91,6 +92,9 @@ class Client(object):
         headers = {'Accept-Encoding': 'identity', 'User-Agent': USER_AGENT}
         if compress:
             headers['Content-Encoding'] = 'gzip'
+
+        if self.cookie:
+            headers['Cookie'] = self.cookie
 
         response = None
 
