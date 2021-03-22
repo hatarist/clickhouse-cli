@@ -35,6 +35,7 @@ Python 3.4+ is required.
       -P, --password           Password
       -d, --database TEXT      Database
       -s, --settings TEXT      Query string to be appended to every query
+      -c, --cookie TEXT        Cookie header to be sent with every query
       -f, --format TEXT        Data format for the interactive mode
       -F, --format-stdin TEXT  Data format for stdin/file queries
       -m, --multiline          Enable multiline shell
@@ -55,6 +56,7 @@ Python 3.4+ is required.
     db = default
     user = default
     password =
+    cookie =
 
     # It's not secure to store the password here in plain text.
 
@@ -167,6 +169,7 @@ The available environment variables are:
  - `CLICKHOUSE_USER`
  - `CLICKHOUSE_PASSWORD`
  - `CLICKHOUSE_DATABASE`
+ - `CLICKHOUSE_COOKIE`
 
 The order of precedence is:
 
