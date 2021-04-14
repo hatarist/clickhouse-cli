@@ -1,5 +1,5 @@
+""" Description: Module to create sqlparse patch """
 from sqlparse import tokens
-
 
 KEYWORDS = {
     'ADD': tokens.Keyword,

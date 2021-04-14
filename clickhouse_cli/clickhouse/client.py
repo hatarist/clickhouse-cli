@@ -1,3 +1,4 @@
+""" Description: client.py"""
 import io
 import logging
 import time
@@ -28,6 +29,9 @@ echo = Echo()
 
 
 class Response(object):
+    """ Description: Creating the Response
+        params query : passing the query
+        params fmt : passing the format"""
 
     def __init__(self, query, fmt, response='', message='', stream=False):
         self.query = query
@@ -64,6 +68,11 @@ class Response(object):
 
 
 class Client(object):
+    """ Description : Client Class
+        params url: specify the url
+        params user: specify the username
+        params password: specify the database name
+        params cookie: specify the cookie"""
 
     def __init__(self, url, user, password, database, cookie, stacktrace=False, timeout=10.0,
                  timeout_retry=0, timeout_retry_delay=0.0):
@@ -118,11 +127,11 @@ class Client(object):
                 timeout=(self.timeout, None),
                 **kwargs
             )
-        except requests.exceptions.ConnectTimeout as e:
-            raise TimeoutError(*e.args) from e
+        except requests.exceptions.ConnectTimeout as exception:
+            raise TimeoutError(*exception.args) from exception
         except (requests.exceptions.ConnectionError,
-            requests.packages.urllib3.exceptions.NewConnectionError) as e:
-            raise ConnectionError(*e.args) from e
+                requests.packages.urllib3.exceptions.NewConnectionError) as exception:
+            raise ConnectionError(*exception.args) from exception
 
         if response is not None and response.status_code != 200:
             raise DBException(response, query=query)
@@ -130,6 +139,7 @@ class Client(object):
         return Response(query, fmt, response, stream=stream)
 
     def test_query(self):
+        """ Description : creating the test query """
         params = {'database': self.database}
         return self._query(
             'GET',
@@ -140,6 +150,7 @@ class Client(object):
         )
 
     def kill_query(self, query_id):
+        """ Description : running the kill query """
         return self._query(
             'GET',
             'SELECT 1',
@@ -150,6 +161,8 @@ class Client(object):
 
     def query(self, query, data=None, fmt='PrettyCompact',
               stream=False, verbose=False, query_id=None, compress=False, **kwargs):
+        """ Description : creating the query
+            params query : pass the query"""
         if query.lstrip()[:6].upper().startswith('INSERT'):
             query_split = query.split()
         else:
@@ -166,7 +179,8 @@ class Client(object):
 
                 formatter = TerminalFormatter()
 
-                if self.cli_settings.get('highlight') and self.cli_settings.get('highlight_truecolor'):
+                if (self.cli_settings.get('highlight') and
+                        self.cli_settings.get('highlight_truecolor')):
                     formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
 
                 print('\n' + pygments.highlight(
@@ -188,9 +202,9 @@ class Client(object):
                 self.database = query_split[1]
                 try:
                     self.test_query()
-                except DBException as e:
+                except DBException as exception:
                     self.database = old_database
-                    raise e
+                    raise exception
 
                 return Response(
                     query,
@@ -254,16 +268,16 @@ class Client(object):
 
         if has_outfile:
             try:
-                with open(path, 'wb') as f:
-                    if not f:
+                with open(path, 'wb') as file:
+                    if not file:
                         return response
 
                     if stream:
                         for line in response.iter_lines():
-                            f.write(line)
+                            file.write(line)
                     else:
-                        f.write(response.data.encode())
-            except Exception as e:
-                echo.warning("Caught an exception when writing to file: {0}".format(e))
+                        file.write(response.data.encode())
+            except Exception as error:
+                echo.warning("Caught an exception when writing to file: {0}".format(error))
 
         return response

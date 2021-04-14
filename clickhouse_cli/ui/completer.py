@@ -1,3 +1,4 @@
+""" Description: Completer.py """
 import re
 import operator
 from itertools import count
@@ -19,6 +20,9 @@ from clickhouse_cli.ui.parseutils.helpers import (
 
 
 class CHCompleter(Completer):
+    """ Description: CHCompleter Class
+        params client : pass the client name
+        params metadata : pass the metadata """
 
     def __init__(self, client, metadata):
         super(CHCompleter, self).__init__()
@@ -115,7 +119,7 @@ class CHCompleter(Completer):
             result = self._select('DESCRIBE TABLE {}'.format(table), flatten=False)
         else:
             result = self._select('DESCRIBE TABLE {}.{}'.format(database, table),
-                flatten=False)
+                                  flatten=False)
         return [field[0] for field in result]
 
     def escape_name(self, name):
@@ -471,7 +475,8 @@ class CHCompleter(Completer):
                 flat_cols.sort()
                 for cols in scoped_cols.values():
                     cols.sort(key=operator.attrgetter('name'))
-            if (lastword != word_before_cursor and len(tables) == 1 and word_before_cursor[-len(lastword) - 1] == '.'):
+            if (lastword != word_before_cursor and
+                    len(tables) == 1 and word_before_cursor[-len(lastword) - 1] == '.'):
                 # User typed x.*; replicate "x." for all columns except the
                 # first, which gets the original (as we only replace the "*"")
                 sep = ', ' + word_before_cursor[:-1]
@@ -532,7 +537,9 @@ class CHCompleter(Completer):
                 alias, c(left.col), rtbl.ref, c(right.col))]
             # Schema-qualify if (1) new table in same schema as old, and old
             # is schema-qualified, or (2) new in other schema, except public
-            if not suggestion.schema and (qualified[normalize_ref(rtbl.ref)] and left.schema == right.schema or left.schema not in(right.schema, 'default')):
+            if not suggestion.schema and (qualified[normalize_ref(rtbl.ref)] and
+                                          left.schema == right.schema or
+                                          left.schema not in(right.schema, 'default')):
                 join = left.schema + '.' + join
             prio = ref_prio[normalize_ref(rtbl.ref)] * 2 + (
                 0 if (left.schema, left.tbl) in other_tbls else 1)
@@ -704,7 +711,7 @@ class CHCompleter(Completer):
             FORMATS,
             mode='strict',
             meta='format'
-        )        
+        )
 
     suggestion_matchers = {
         FromClauseItem: get_from_clause_item_matches,

@@ -1,7 +1,11 @@
+""" Description: creating the exceptions """
 import re
 
-
 class DBException(Exception):
+    """ Description: creating the Custom DB Exception
+        params response : passing the response
+        params query : passing the query"""
+
     regex = (
         r'Code: (?P<code>\d+), e\.displayText\(\) = ([\w:]+: )?(?P<text>[\w\W]+),\s+'
         r'e\.what\(\) = (?P<what>[\w:]+)(,\s+)?'
@@ -28,8 +32,9 @@ class DBException(Exception):
 
 
 class TimeoutError(Exception):
+    """ Description: creating the custom TimeoutError """
     pass
 
-
 class ConnectionError(Exception):
+    """ Description: creating the custom ConnectionError """
     pass

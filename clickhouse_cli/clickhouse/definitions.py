@@ -1,5 +1,5 @@
+""" Description: creating the definitions """
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS as sqlparse_keywords
-
 
 # TODO: Run `SELECT name FROM system.functions` instead of this hardcoding
 FUNCTIONS = (

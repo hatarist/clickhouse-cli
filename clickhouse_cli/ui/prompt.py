@@ -1,5 +1,4 @@
-import os
-
+""" Description: prompt.py """
 from prompt_toolkit.application import get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
