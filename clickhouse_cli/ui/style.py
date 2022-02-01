@@ -70,8 +70,9 @@ def get_ch_pygments_style(theme=None):
         return get_style_by_name(theme)
     return CHPygmentsStyleDefault
 
+
 def get_ch_style(theme=None):
-    style_from_pygments_cls(get_ch_pygments_style(theme))
+    return style_from_pygments_cls(get_ch_pygments_style(theme))
 
 
 class Echo(object):

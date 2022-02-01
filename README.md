@@ -77,8 +77,17 @@ Python 3.4+ is required.
     # Show the reformatted query after its execution
     show_formatted_query = True
 
+    # Syntax highlighting
+    highlight = True
+
     # Syntax highlight certain output in the interactive mode:
     highlight_output = True
+
+    # Syntax highlighting in TrueColor (if supported, see https://gist.github.com/XVilka/8346728)
+    highlight_truecolor = True
+
+    # Pygments Highlight theme (check out https://help.farbox.com/pygments.html for available themes)
+    highlight_theme = default
 
     # Show the output via pager (if defined)
     pager = False
@@ -226,8 +235,8 @@ Say, you often run queries that parse some JSON, so you use `visitParamExtractSt
 
      :) SELECT date, ip, visitParamExtractString(headers, 'User-Agent') AS ua FROM visits LIMIT 1;
 
-Even with autocompletion, this makes it harder to work with such queries.  
-With this feature, you'll be able to create custom find & replace pairs to make things a little bit easier (or harder; it depends).  
+Even with autocompletion, this makes it harder to work with such queries.
+With this feature, you'll be able to create custom find & replace pairs to make things a little bit easier (or harder; it depends).
 Put this in your `.clickhouse-cli.rc`:
 
     udf = {
@@ -238,5 +247,5 @@ And rejoice!
 
      :) SELECT date, ip, header('User-Agent') AS ua FROM visits LIMIT 1;
 
-The client will replace the matching expressions with another ones, and the query will execute correctly.  
+The client will replace the matching expressions with another ones, and the query will execute correctly.
 See [.clickhouse-cli.rc](https://github.com/hatarist/clickhouse-cli/blob/master/clickhouse_cli/clickhouse-cli.rc.sample) for a full example.
