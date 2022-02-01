@@ -17,7 +17,7 @@ from clickhouse_cli.clickhouse.definitions import READ_QUERIES, FORMATTABLE_QUER
 from clickhouse_cli.clickhouse.exceptions import (
     DBException, ConnectionError, TimeoutError
 )
-from clickhouse_cli.ui.style import CHPygmentsStyle, Echo
+from clickhouse_cli.ui.style import Echo, get_ch_pygments_style
 from clickhouse_cli.ui.lexer import CHLexer
 
 
@@ -167,7 +167,9 @@ class Client(object):
                 formatter = TerminalFormatter()
 
                 if self.cli_settings.get('highlight') and self.cli_settings.get('highlight_truecolor'):
-                    formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                    formatter = TerminalTrueColorFormatter(
+                        style=get_ch_pygments_style(self.cli_settings.get('highlight_theme'))
+                    )
 
                 print('\n' + pygments.highlight(
                     formatted_query,
