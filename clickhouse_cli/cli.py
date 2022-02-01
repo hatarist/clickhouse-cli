@@ -37,7 +37,7 @@ from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
 from clickhouse_cli.ui.prompt import (
     CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens, is_multiline
 )
-from clickhouse_cli.ui.style import CHStyle, Echo, CHPygmentsStyle
+from clickhouse_cli.ui.style import Echo, get_ch_pygments_style, get_ch_style
 from clickhouse_cli.ui.completer import CHCompleter
 from clickhouse_cli.config import read_config
 
@@ -154,6 +154,7 @@ class CLI:
         # forcefully disable `highlight_output` in (u)rxvt (https://github.com/hatarist/clickhouse-cli/issues/20)
         self.highlight_output = False if os.environ.get('TERM', '').startswith('rxvt') else self.config.getboolean('main', 'highlight_output')
         self.highlight_truecolor = self.config.getboolean('main', 'highlight_truecolor') and os.environ.get('COLORTERM')
+        self.highlight_theme = self.config.get('main', 'highlight_theme', fallback=None)
         self.complete_while_typing = self.config.getboolean('main', 'complete_while_typing')
 
         try:
@@ -257,14 +258,6 @@ class CLI:
         root_container = Window(content=BufferControl(buffer=buffer))
 
         layout = Layout(root_container)
-        # layout.focus(root_container)
-
-        # layout = prompt(
-        #     lexer=PygmentsLexer(CHLexer) if self.highlight else None,
-        #     # get_prompt_tokens=get_prompt_tokens,
-        #     # get_continuation_tokens=get_continuation_tokens,
-        #     multiline=self.multiline,
-        # )
 
         hist = FileHistory(
                 filename=os.path.expanduser('~/.clickhouse-cli_history')
@@ -272,7 +265,7 @@ class CLI:
         self.completer = CHCompleter(self.client, self.metadata)
 
         self.session = PromptSession(
-            style=CHStyle if self.highlight else None,
+            style=get_ch_style(self.highlight_theme) if self.highlight else None,
             lexer=PygmentsLexer(CHLexer) if self.highlight else None,
             message=get_prompt_tokens()[0][1],
             prompt_continuation=get_continuation_tokens()[0][1],
@@ -281,8 +274,7 @@ class CLI:
             history=hist,
             key_bindings=kb,
             complete_while_typing=self.complete_while_typing,
-            completer=ThreadedCompleter(
-                    DynamicCompleter(lambda: self.completer)),
+            completer=ThreadedCompleter(DynamicCompleter(lambda: self.completer)),
         )
 
         self.app = Application(
@@ -290,7 +282,6 @@ class CLI:
             # buffer=buffer,
         )
 
-        #self.cli = CommandLineInterface(application=application, eventloop=eventloop)
         if self.refresh_metadata_on_start:
             self.app.current_buffer.completer.refresh_metadata()
 
@@ -454,7 +445,9 @@ class CLI:
                 formatter = TerminalFormatter()
 
                 if self.highlight and self.highlight_output and self.highlight_truecolor:
-                    formatter = TerminalTrueColorFormatter(style=CHPygmentsStyle)
+                    formatter = TerminalTrueColorFormatter(
+                        style=get_ch_pygments_style(self.highlight_theme)
+                    )
 
                 if should_highlight_output:
                     print_func(pygments.highlight(

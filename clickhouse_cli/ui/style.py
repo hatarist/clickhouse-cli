@@ -18,7 +18,7 @@ BLUE = "#387be8"
 PURPLE = "#860093"
 
 
-class CHPygmentsStyle(Style):
+class CHPygmentsStyleDefault(Style):
     background_color = '#202020'
     highlight_color = '#404040'
 
@@ -65,9 +65,14 @@ class CHPygmentsStyle(Style):
     }
 
 
-# TODO: make it an option to switch color schemes
-# CHPygmentsStyle = get_style_by_name('monokai')
-CHStyle = style_from_pygments_cls(CHPygmentsStyle)
+def get_ch_pygments_style(theme=None):
+    if theme is not None:
+        return get_style_by_name(theme)
+    return CHPygmentsStyleDefault
+
+
+def get_ch_style(theme=None):
+    return style_from_pygments_cls(get_ch_pygments_style(theme))
 
 
 class Echo(object):
