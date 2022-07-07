@@ -129,7 +129,9 @@ class CLI:
             return False
 
         if not response.data.endswith('\n'):
-            self.echo.error("Error: Request failed: `SELECT version();` query failed.")
+            self.echo.error("Error: Request failed: `SELECT version();` query failed with status code: {}.".format(response.status_code))
+            self.echo.error(response.data)
+
             return False
 
         version = response.data.strip().split('.')

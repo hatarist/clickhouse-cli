@@ -36,9 +36,11 @@ class Response(object):
         self.stream = stream
         self.time_elapsed = None
         self.rows = None
+        self.status_code = None
 
         if isinstance(response, requests.Response):
             self.time_elapsed = response.elapsed.total_seconds()
+            self.status_code = response.status_code
 
             if stream:
                 self.data = response.iter_lines()
