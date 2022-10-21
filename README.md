@@ -39,6 +39,7 @@ Python 3.4+ is required.
       -f, --format TEXT        Data format for the interactive mode
       -F, --format-stdin TEXT  Data format for stdin/file queries
       -m, --multiline          Enable multiline shell
+      -k, --insecure           Allow insecure server connections when using SSL
       --stacktrace             Print stacktraces received from the server.
       --version                Show the version and exit.
       --help                   Show this message and exit.
@@ -62,6 +63,8 @@ Python 3.4+ is required.
 
 
     [main]
+    # Allow insecure server connections when using SSL
+    insecure = False
     # Disable multiline mode by default
     multiline = False
 
