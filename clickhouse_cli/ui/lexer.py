@@ -26,6 +26,27 @@ CH_REGEX = [
     (r'"(\\\\|\\"|""|[^"])*"', tokens.String),
     (r"`(\\\\|\\`|``|[^`])*`", tokens.String),
     (r'[+*/<>=~!@#%^&|`?-]', tokens.Operator),
+
+    (words(OPERATORS, prefix=r'(?i)', suffix=r'\b'), tokens.Keyword),
+    (words(DATATYPES, suffix=r'\b'), tokens.Keyword.Type),
+
+    (words(FORMATS), tokens.Name.Label),
+    (words(AGGREGATION_FUNCTIONS, suffix=r'(\s*)(\()'),
+        bygroups(tokens.Name.Function, tokens.Text, tokens.Punctuation)),
+    (words(CASE_INSENSITIVE_FUNCTIONS, prefix=r'(?i)', suffix=r'\b'),
+        tokens.Name.Function),
+    (words(FUNCTIONS, suffix=r'(\s*)(\()'),
+        bygroups(tokens.Name.Function, tokens.Text, tokens.Punctuation)),
+    (words(KEYWORDS, prefix=r'(?i)', suffix=r'\b'), tokens.Keyword),
+    (r'^\\(\?|\w+)', tokens.Text),
+
+    (r'(?i)[a-z_]\w*', tokens.Text),
+    (r'(?i)[;:()\[\],.]', tokens.Punctuation),
+
+    (r"'", tokens.String.Single),
+    (r'[a-z_]\w*', tokens.Name),
+
+    (r'[;:()\[\]{},.]', tokens.Punctuation),
 ]
 
 
