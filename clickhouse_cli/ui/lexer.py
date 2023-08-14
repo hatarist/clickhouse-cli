@@ -12,8 +12,21 @@ from clickhouse_cli.clickhouse.definitions import (
     KEYWORDS,
     OPERATORS,
 )
+from sqlparse import tokens
 
 line_re = re.compile('.*?\n')
+
+CH_REGEX = [
+    (r'\s+', tokens.Text),
+    (r'(--\s*).*?\n', tokens.Comment),
+    (r'/\*', tokens.Comment.Multiline),
+    (r'[0-9]+', tokens.Number),
+    (r'[0-9]*\.[0-9]+(e[+-][0-9]+)', tokens.Number),
+    (r"'(\\\\|\\'|''|[^'])*'", tokens.String),
+    (r'"(\\\\|\\"|""|[^"])*"', tokens.String),
+    (r"`(\\\\|\\`|``|[^`])*`", tokens.String),
+    (r'[+*/<>=~!@#%^&|`?-]', tokens.Operator),
+]
 
 
 class CHLexer(RegexLexer):

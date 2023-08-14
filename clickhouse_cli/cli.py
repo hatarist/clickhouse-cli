@@ -15,6 +15,7 @@ from uuid import uuid4
 import click
 import pygments
 import sqlparse
+from sqlparse.lexer import Lexer
 from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter
 
 
@@ -33,19 +34,13 @@ from clickhouse_cli.clickhouse.client import Client, ConnectionError, DBExceptio
 from clickhouse_cli.clickhouse.definitions import EXIT_COMMANDS, PRETTY_FORMATS
 from clickhouse_cli.clickhouse.sqlparse_patch import KEYWORDS
 from clickhouse_cli.helpers import parse_headers_stream, sizeof_fmt, numberunit_fmt
-from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer
+from clickhouse_cli.ui.lexer import CHLexer, CHPrettyFormatLexer, CH_REGEX
 from clickhouse_cli.ui.prompt import (
     CLIBuffer, kb, get_continuation_tokens, get_prompt_tokens, is_multiline
 )
 from clickhouse_cli.ui.style import Echo, get_ch_pygments_style, get_ch_style
 from clickhouse_cli.ui.completer import CHCompleter
 from clickhouse_cli.config import read_config
-
-# monkey-patch sqlparse
-sqlparse.keywords.SQL_REGEX = CHLexer.tokens
-sqlparse.keywords.KEYWORDS = KEYWORDS
-sqlparse.keywords.KEYWORDS_COMMON = {}
-sqlparse.keywords.KEYWORDS_ORACLE = {}
 
 # monkey-patch http.client
 http.client.parse_headers = parse_headers_stream
@@ -82,6 +77,10 @@ class CLI:
         self.progress = None
 
         self.metadata = {}
+        lex = Lexer.get_default_instance()
+        lex.clear()
+        lex.set_SQL_REGEX(CH_REGEX)
+        lex.add_keywords(KEYWORDS)
 
     def connect(self):
         self.scheme = 'http'
