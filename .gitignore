@@ -3,3 +3,6 @@
 *.egg-info
 dist
 build
+.coverage
+.tox/*
+.python-version
