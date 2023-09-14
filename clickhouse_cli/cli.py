@@ -584,6 +584,7 @@ def run_cli(host, port, user, password, arg_password, database, settings, query,
         host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode, cookie, insecure
     )
     cli.run(query, data_input)
+    return 0
 
 
 if __name__ == '__main__':
