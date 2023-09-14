@@ -16,6 +16,12 @@ clean:
 	find . -name '*~' -delete
 	rm -rf clickhouse_cli.egg-info build dist
 
+format:
+	black clickhouse_cli
+
+lint:
+	flake8 clickhouse_cli
+
 test:
 	tox
 

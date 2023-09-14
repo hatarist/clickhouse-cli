@@ -1,14 +1,12 @@
 import os
 import shutil
-
 from configparser import ConfigParser
 
 from clickhouse_cli.ui.style import Echo
 
-
 PACKAGE_ROOT = os.path.dirname(__file__)
-DEFAULT_CONFIG = os.path.join(PACKAGE_ROOT, 'clickhouse-cli.rc.sample')
-USER_CONFIG = '~/.clickhouse-cli.rc'
+DEFAULT_CONFIG = os.path.join(PACKAGE_ROOT, "clickhouse-cli.rc.sample")
+USER_CONFIG = "~/.clickhouse-cli.rc"
 
 
 echo = Echo()

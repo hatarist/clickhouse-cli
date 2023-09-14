@@ -1,17 +1,15 @@
-import os
-
 from prompt_toolkit.application import get_app
 from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER, SEARCH_BUFFER
 from prompt_toolkit.filters import Condition, HasFocus
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from pygments.token import Token
-# from prompt_toolkit.formatted_text import PygmentsTokens
 
 from clickhouse_cli.clickhouse.definitions import INTERNAL_COMMANDS
 from clickhouse_cli.ui.completer import CHCompleter
+
+# from prompt_toolkit.formatted_text import PygmentsTokens
 
 
 kb = KeyBindings()
@@ -30,7 +28,6 @@ def is_multiline(multiline):
 
 
 class CLIBuffer(Buffer):
-
     def __init__(self, client, multiline, metadata, *args, **kwargs):
         super(CLIBuffer, self).__init__(
             *args,
@@ -38,27 +35,23 @@ class CLIBuffer(Buffer):
             enable_history_search=True,
             # doesn't seem to have any effect on prompt_toolkit 2.x's PromptSession
             # multiline=is_multiline(multiline),
-            **kwargs
+            **kwargs,
         )
 
 
 def query_is_finished(text, multiline=False):
     text = text.strip()
-    return (
-        (not multiline and text == '') or
-        text.endswith(';') or
-        text in INTERNAL_COMMANDS
-    )
+    return (not multiline and text == "") or text.endswith(";") or text in INTERNAL_COMMANDS
 
 
 def get_prompt_tokens(*args):
     return [
-        (Token.Prompt, ' :) '),
+        (Token.Prompt, " :) "),
     ]
 
 
 def get_continuation_tokens(*args):
-    return [(Token.Prompt, '  ] ')]
+    return [(Token.Prompt, "  ] ")]
 
 
 @kb.add(Keys.ControlC, filter=HasFocus(DEFAULT_BUFFER))
@@ -79,7 +72,7 @@ def reset_search_buffer(event):
         event.cli.push_focus(DEFAULT_BUFFER)
 
 
-@kb.add('tab')
+@kb.add("tab")
 def autocomplete(event):
     """Force autocompletion at cursor."""
     buffer = event.app.current_buffer
@@ -89,7 +82,7 @@ def autocomplete(event):
         buffer.start_completion(select_first=True)
 
 
-@kb.add('c-space')
+@kb.add("c-space")
 def autocomplete_ctrl_space(event):
     buffer = event.app.current_buffer
     if buffer.complete_state:

@@ -3,23 +3,23 @@ import http.client
 import io
 
 
-def sizeof_fmt(num, suffix='B'):
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
 def numberunit_fmt(num):
     if not num:
         return "0"
 
-    for unit in ['', 'thousand', 'million', 'billion', 'trillion']:
+    for unit in ["", "thousand", "million", "billion", "trillion"]:
         if abs(num) < 1000.0:
             return ("%3.1f %s" % (num, unit)).strip()
         num /= 1000.0
-    return "%.1f %s" % (num, 'quadrillion')
+    return "%.1f %s" % (num, "quadrillion")
 
 
 def trace_headers_stream(*args):
@@ -35,23 +35,23 @@ def parse_headers_stream(fp, _class=http.client.HTTPMessage):
         if len(line) > http.client._MAXLINE:
             raise http.client.LineTooLong("header line")
 
-        if line.startswith(b'X-ClickHouse-Progress: ') and trace_headers_stream:
+        if line.startswith(b"X-ClickHouse-Progress: ") and trace_headers_stream:
             trace_headers_stream(line)
         else:
             headers.append(line)
 
         # _MAXHEADERS check was removed here since ClickHouse may send a lot of Progress headers.
 
-        if line in (b'\r\n', b'\n', b''):
+        if line in (b"\r\n", b"\n", b""):
             break
-    hstring = b''.join(headers).decode('iso-8859-1')
+    hstring = b"".join(headers).decode("iso-8859-1")
     return email.parser.Parser(_class=_class).parsestr(hstring)
 
 
 def chain_streams(streams, buffer_size=io.DEFAULT_BUFFER_SIZE):
     """
     https://stackoverflow.com/questions/24528278/stream-multiple-files-into-a-readable-object-in-python
-    
+
     Chain an iterable of streams together into a single buffered stream.
     Usage:
         def generate_open_file_streams():
@@ -63,7 +63,7 @@ def chain_streams(streams, buffer_size=io.DEFAULT_BUFFER_SIZE):
 
     class ChainStream(io.RawIOBase):
         def __init__(self):
-            self.leftover = b''
+            self.leftover = b""
             self.stream_iter = iter(streams)
             try:
                 self.stream = next(self.stream_iter)
@@ -81,7 +81,7 @@ def chain_streams(streams, buffer_size=io.DEFAULT_BUFFER_SIZE):
             elif self.stream is not None:
                 return self.stream.read(max_length)
             else:
-                return b''
+                return b""
 
         def readinto(self, b):
             buffer_length = len(b)
@@ -98,7 +98,7 @@ def chain_streams(streams, buffer_size=io.DEFAULT_BUFFER_SIZE):
                     self.stream = None
                     return 0  # indicate EOF
             output, self.leftover = chunk[:buffer_length], chunk[buffer_length:]
-            b[:len(output)] = output
+            b[: len(output)] = output
             return len(output)
 
     return io.BufferedReader(ChainStream(), buffer_size=buffer_size)
