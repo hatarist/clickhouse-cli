@@ -16,7 +16,7 @@ But it works over the HTTP port, so there are some limitations for now:
 
 ## Install
 
-Python 3.4+ is required.
+Python 3.7+ is required.
 
     $ pip3 install clickhouse-cli
 
