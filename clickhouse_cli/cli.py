@@ -59,7 +59,7 @@ class CLI:
 
     def __init__(self, host, port, user, password, database,
                  settings, format, format_stdin, multiline, stacktrace,
-                 vi_mode, cookie):
+                 vi_mode, cookie, insecure):
         self.config = None
 
         self.host = host
@@ -75,6 +75,7 @@ class CLI:
         self.stacktrace = stacktrace
         self.vi_mode = vi_mode
         self.server_version = None
+        self.insecure = insecure
 
         self.query_ids = []
         self.client = None
@@ -101,6 +102,7 @@ class CLI:
             self.conn_timeout,
             self.conn_timeout_retry,
             self.conn_timeout_retry_delay,
+            not self.insecure,
         )
 
         self.echo.print("Connecting to {host}:{port}".format(
@@ -147,6 +149,7 @@ class CLI:
     def load_config(self):
         self.config = read_config()
 
+        self.insecure = self.insecure or self.config.getboolean('main', 'insecure')
         self.multiline = self.multiline or self.config.getboolean('main', 'multiline')
         self.vi_mode = self.vi_mode or self.config.getboolean('main', 'vi_mode')
         self.format = self.format or self.config.get('main', 'format')
@@ -544,6 +547,7 @@ class CLI:
 @click.option('--settings', '-s', help="Query string to be sent with every query")
 @click.option('--cookie', '-c', help="Cookie header to be sent with every query")
 @click.option('--query', '-q', help="Query to execute")
+@click.option('--insecure', '-k', is_flag=True, help="Allow insecure server connections when using SSL")
 @click.option('--format', '-f', help="Data format for the interactive mode")
 @click.option('--format-stdin', '-F', help="Data format for stdin/file queries")
 @click.option('--multiline', '-m', is_flag=True, help="Enable multiline shell")
@@ -552,7 +556,7 @@ class CLI:
 @click.option('--version', is_flag=True, help="Show the version and exit.")
 @click.argument('files', nargs=-1, type=click.File('rb'))
 def run_cli(host, port, user, password, arg_password, database, settings, query, format,
-            format_stdin, multiline, stacktrace, vi_mode, cookie, version, files):
+            format_stdin, multiline, stacktrace, vi_mode, cookie, version, files, insecure):
     """
     A third-party client for the ClickHouse DBMS.
     """
@@ -577,7 +581,7 @@ def run_cli(host, port, user, password, arg_password, database, settings, query,
 
     # TODO: Rename the CLI's instance into something more feasible
     cli = CLI(
-        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode, cookie
+        host, port, user, password, database, settings, format, format_stdin, multiline, stacktrace, vi_mode, cookie, insecure
     )
     cli.run(query, data_input)
 

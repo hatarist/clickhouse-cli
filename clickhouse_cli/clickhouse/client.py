@@ -68,7 +68,7 @@ class Response(object):
 class Client(object):
 
     def __init__(self, url, user, password, database, cookie, stacktrace=False, timeout=10.0,
-                 timeout_retry=0, timeout_retry_delay=0.0):
+                 timeout_retry=0, timeout_retry_delay=0.0, verify=True):
         self.url = url
         self.user = user
         self.password = password or ''
@@ -79,6 +79,7 @@ class Client(object):
         self.stacktrace = stacktrace
         self.timeout = timeout
         self.session = requests.Session()
+        self.verify = verify
 
         retries = Retry(
             connect=timeout_retry,
@@ -118,6 +119,7 @@ class Client(object):
                 stream=stream,
                 headers=headers,
                 timeout=(self.timeout, None),
+                verify=self.verify,
                 **kwargs
             )
         except requests.exceptions.ConnectTimeout as e:

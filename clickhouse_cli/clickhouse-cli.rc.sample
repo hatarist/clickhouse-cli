@@ -11,6 +11,8 @@ cookie =
 # It's not secure to store the password here in plain text.
 
 [main]
+# Allow insecure server connections when using SSL
+insecure = False
 # Disable multiline mode by default
 multiline = False
 
