@@ -12,5 +12,5 @@ import sys
 
 from clickhouse_cli.cli import run_cli
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(run_cli())
