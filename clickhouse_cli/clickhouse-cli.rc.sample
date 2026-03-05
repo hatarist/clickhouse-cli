@@ -92,3 +92,13 @@ conn_timeout_retry_delay = 0.5
 # You can place the server-side settings here!
 
 # max_memory_usage = 20000000000
+
+
+[headers]
+# Arbitrary HTTP headers to send with every request.
+# Each key/value pair becomes one header. These can also be supplied at
+# runtime with the --header / -H flag ("Name: Value" format); CLI flags
+# take precedence over values set here.
+
+# X-My-Custom-Header = some-value
+# Authorization = Bearer my-token
