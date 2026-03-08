@@ -64,6 +64,7 @@ class CLI:
         vi_mode,
         cookie,
         insecure,
+        headers=None,
     ):
         self.config = None
 
@@ -73,6 +74,7 @@ class CLI:
         self.password = password
         self.database = database
         self.cookie = cookie
+        self.headers = headers or {}
         self.settings = {k: v[0] for k, v in parse_qs(settings).items()}
         self.format = format
         self.format_stdin = format_stdin
@@ -108,6 +110,7 @@ class CLI:
             self.conn_timeout_retry,
             self.conn_timeout_retry_delay,
             not self.insecure,
+            headers=self.headers,
         )
 
         self.echo.print("Connecting to {host}:{port}".format(host=self.host, port=self.port))
@@ -212,6 +215,12 @@ class CLI:
         arg_settings = self.settings
         config_settings.update(arg_settings)
         self.settings = config_settings
+
+        config_headers = {}
+        if self.config.has_section("headers"):
+            config_headers = dict(self.config.items("headers"))
+        config_headers.update(self.headers)
+        self.headers = config_headers
 
         self.echo.colors = self.highlight
 
@@ -564,6 +573,12 @@ class CLI:
 @click.option("--database", "-d", help="Database")
 @click.option("--settings", "-s", help="Query string to be sent with every query")
 @click.option("--cookie", "-c", help="Cookie header to be sent with every query")
+@click.option(
+    "--header",
+    "-H",
+    multiple=True,
+    help="Additional HTTP header to send with every request (format: 'Name: Value'). Can be specified multiple times.",
+)
 @click.option("--query", "-q", help="Query to execute")
 @click.option(
     "--insecure",
@@ -593,6 +608,7 @@ def run_cli(
     stacktrace,
     vi_mode,
     cookie,
+    header,
     version,
     files,
     insecure,
@@ -607,6 +623,18 @@ def run_cli(
         password = arg_password
     elif password:
         password = click.prompt("Password", hide_input=True, show_default=False, type=str)
+
+    # Parse --header values from "Name: Value" format into a dict.
+    # Later entries with the same name win.
+    headers = {}
+    for h in header:
+        if ": " not in h:
+            raise click.BadParameter(
+                "Headers must be in 'Name: Value' format, got: {!r}".format(h),
+                param_hint="'--header' / '-H'",
+            )
+        name, _, value = h.partition(": ")
+        headers[name] = value
 
     data_input = ()
 
@@ -634,6 +662,7 @@ def run_cli(
         vi_mode,
         cookie,
         insecure,
+        headers=headers,
     )
     cli.run(query, data_input)
     return 0

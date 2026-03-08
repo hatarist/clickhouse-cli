@@ -72,12 +72,14 @@ class Client(object):
         timeout_retry=0,
         timeout_retry_delay=0.0,
         verify=True,
+        headers=None,
     ):
         self.url = url
         self.user = user
         self.password = password or ""
         self.database = database
         self.cookie = cookie
+        self.headers = headers or {}
         self.session_id = str(uuid.uuid4())
         self.cli_settings = {}
         self.stacktrace = stacktrace
@@ -112,6 +114,8 @@ class Client(object):
 
         if self.cookie:
             headers["Cookie"] = self.cookie
+
+        headers.update(self.headers)
 
         response = None
 
