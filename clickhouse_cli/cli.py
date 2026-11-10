@@ -628,12 +628,13 @@ def run_cli(
     # Later entries with the same name win.
     headers = {}
     for h in header:
-        if ": " not in h:
+        name, sep, value = h.partition(":")
+        name, value = name.strip(), value.strip()
+        if not sep or not name or not value:
             raise click.BadParameter(
                 "Headers must be in 'Name: Value' format, got: {!r}".format(h),
                 param_hint="'--header' / '-H'",
             )
-        name, _, value = h.partition(": ")
         headers[name] = value
 
     data_input = ()

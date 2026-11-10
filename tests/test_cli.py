@@ -42,6 +42,21 @@ def test_custom_headers_sent_with_request():
     assert captured["headers"].get("X-Another") == "hello"
 
 
+def test_header_without_space_after_colon():
+    """tests -H values like 'Name:value' (no space) are accepted"""
+    runner = CliRunner()
+    with patch("clickhouse_cli.cli.CLI") as mock_cli:
+        result = runner.invoke(run_cli, [
+            "-h", "localhost",
+            "-p", "8123",
+            "-H", "X-No-Space:value",
+            "-q", "SELECT 1",
+        ])
+
+    assert result.exit_code == 0
+    assert mock_cli.call_args.kwargs["headers"] == {"X-No-Space": "value"}
+
+
 def test_custom_headers_stored_on_client():
     """tests headers suppliet for client object"""
     client = Client(
